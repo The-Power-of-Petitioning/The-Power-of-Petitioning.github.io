@@ -1,0 +1,716 @@
+---
+title: "Responses to petitions"
+description: |
+  Did petitioners get what they wanted?
+output:
+  distill::distill_article:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r message=FALSE}
+##i have responses data in data.R - presumably should work for second part of this. will it work for the earlier viz? yep, eventually
+
+# see https://twitter.com/sharon_howard/status/1204141795178881034  [2019/12/9]
+# I've been coding responses to Cheshire QS petitions (about 2/3 have some sort of response written on the petition itself). How often did petitioners get what they wanted?
+#see https://twitter.com/sharon_howard/status/1306150481278971904  [2020/09/16]
+#[noted in tweet that this wasn't presented in workshop slides]
+```
+
+
+## Cheshire Quarter Sessions petitions
+
+I'm focusing on Cheshire quarter sessions because I've already done the work coding responses for this collection. I'd like to compare with some of TPOP's other transcribed collections, but that'll take quite a bit of work which I don't have time to do at present.
+
+```{r message=FALSE}
+# includes packages atm
+#source(here::here("_data", "data.R"))
+
+# packages ####
+
+# stuff to read data
+
+#library(xlsx) # to write to xlsx
+library(readxl) # for reading xlsx. there is also a writexl...
+library(readODS)
+library(RMariaDB)
+
+# cleaning up data
+library(janitor)
+library(lubridate)
+library(scales)
+
+# knitr tables etc
+library(knitr)
+library(kableExtra)
+
+
+
+# tidy stuff
+library(tidytext)
+library(tidyverse)
+
+# viz, ggplot extensions etc
+library(ggthemes)
+theme_set(theme_minimal()) # set preferred ggplot theme 
+
+### devtools::install_github("hrbrmstr/waffle")
+library(waffle)
+library(hrbrthemes)
+
+library(ggridges)
+##https://github.com/wilkox/treemapify
+library(treemapify)
+
+library(patchwork)
+
+library(RColorBrewer)
+# nb.cols <- 18
+# mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+# scale_fill_manual(values = mycolors) +
+```
+
+
+```{r message=FALSE}
+# level1_data ####
+## data
+### level 1 [bho]
+qs_level1_petitions_latest <-
+  read_tsv(here::here("_data", "qs_metadata_petitions_20200810.tsv")) %>%
+  filter(county=="Ches")
+
+# original level1_petitions had full text and latest doesn't, but shouldn't matter here
+# petition_type is also different from pet_type which may need some adjustments lol
+
+qs_level1_petitions <-
+  qs_level1_petitions_latest %>%
+  # for cheshire only need this
+  mutate(year = parse_number(documentyear)) %>%
+  mutate(decade = year - (year %% 10) ) %>%
+  mutate(petition_type = str_replace_all(petition_type, " +", " "))
+
+### cheshire additional
+# named_petrs for collective should be 0 not NA sigh
+ches_extra_c18_petitions <-
+  read_tsv(here::here("_data", "ches_c18_extra_petitions_20200824.tsv")) %>%
+  mutate(named_petrs = case_when(
+    is.na(named_petrs) ~ 0,
+    TRUE ~ named_petrs
+  ))
+
+## needs doc_no added, which must be distinct from ches level 1 doc_nos; there are 292 ches level 1 petitions so just start at 501
+# could call it level "1a"! - the only level 1 metadata missing is subtopic and detailed sig types for subscribers, but have marks noted (see cheshire_8 petrs_subs)
+# added cheshire 1708 (only 2 petitions)
+# has year
+
+ches_level2_petitions <-
+  readRDS(here::here("_data", "ches_qs_nonbho_petitions_topics_gender_type_20200204.Rds")) %>%
+  # add more detailed name type to diff collective petition subscribers from named petition subscribers...
+  left_join(
+    readRDS(here::here("_data", "ches_qs_nonbho_petr_subs_gender_20200205.Rds")) %>%
+      filter(petr_or_sub=="petr") %>%
+      distinct(reference, name_type)  %>% 
+      mutate(pt = case_when(
+        name_type=="behalf" ~ name_type,
+        name_type=="petr" ~ "named",
+        name_type=="not_named" ~ "collective"
+      )) %>%
+      group_by(reference) %>%
+      arrange(desc(name_type)) %>% 
+      dplyr::summarise(pet_type_expand = paste(pt, collapse = " ")) %>%
+      ungroup() , by=c("reference")
+  ) %>%
+  # keep county abbreviated but capitalise
+  mutate(county = str_to_title(county)) %>%
+  ## add extra 18th c
+  bind_rows(
+    ches_extra_c18_petitions %>% select(-sub_gender) %>%
+      mutate(pet_type_expand = case_when(
+        pet_type=="collective" ~ "collective",
+        pet_type %in% c("single", "multiple") ~ "named"
+      ))
+  ) %>%
+  # put this here instead of further up and it'll add it to the extras as well
+  mutate(year_strict=year, year_parse=year) %>%
+  # i think this will now match level 1... nope try again
+  #rename(petition_type=pet_type) %>%
+  mutate(petition_type = case_when(
+    str_detect(pet_type, "collective|multiple|single") ~ pet_type,
+    pet_type=="named on behalf" ~ "multiple on behalf",
+    named_petrs>1 ~ "multiple",
+    named_petrs==1 ~ "single"
+  ))  %>%
+  mutate(doc_no = recordid + 500) # doesn't matter too much where doc_no starts as long as it won't clash with level1
+
+
+#all_level_1_and_2 ches ####
+
+### level 1 + combinations
+all_level2 <-
+  qs_level1_petitions %>%
+  mutate(level=1) %>%
+  bind_rows(
+    ches_level2_petitions %>% mutate(level=2)
+  ) 
+
+# cheshire_responses_data ####
+# ches_qs_query_v7 <- read_tsv("tpop__20200914_20-53.tsv")
+
+tpopcon <- dbConnect(MariaDB(), host="localhost",  dbname = "tpop", username = "root", password = "mariapw" )
+ches_qs_query <- dbGetQuery(tpopcon, "select * from ches_qjf_petitions_v7")
+dbDisconnect(tpopcon)
+
+ches_petition_responses <-
+  ches_qs_query %>%
+  select(reference, has_response, response_cat, response_details) %>%
+  inner_join(
+    all_level2 %>% select(reference, year, decade, topic, petition_type, pet_gender, subscribers), by="reference"
+  ) %>%
+  mutate(has_response = case_when(
+    is.na(has_response) ~ "no",
+    TRUE ~ has_response
+  ))
+```
+
+```{r}
+# ches_level2_petitions %>%
+#   select(reference, pet_type, named_petrs, subscribers, petitioner) %>%
+#   mutate(petition_type = case_when(
+#     str_detect(pet_type, "collective|multiple|single") ~ pet_type,
+#     pet_type=="named on behalf" ~ "multiple on behalf",
+#     named_petrs>1 ~ "multiple",
+#     named_petrs==1 ~ "single"
+#   )) %>%
+#   #filter(petition_type=="named on behalf") # -> multiple on behalf
+#   #filter(petition_type=="named") # use count of named_petrs
+#   count(petition_type)
+
+# hmm spacing weird in ches level 1 petition_type? fixed
+
+```
+
+
+```{r}
+#library(naniar)
+```
+
+```{r}
+ches_petition_responses_fct <-
+ches_petition_responses %>%
+  mutate(response = case_when(
+    is.na(response_cat) ~ "no_response",
+    response_cat=="nothing" ~ "rejected_nil",
+    response_cat=="absent" ~ "rejected",
+    TRUE ~ response_cat
+  )) %>%  
+  mutate(response_s = case_when(
+    response %in% c("granted", "grant_cond", "grant_part", "referred") ~ "positive",
+    response %in% c("rejected_nil", "rejected", "no_response") ~ "negative",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(!is.na(response_s)) %>%
+  mutate(response = factor(response)) %>%
+  mutate(response = fct_relevel(response, "granted", "grant_part", "grant_cond", "referred", "rejected_nil", "rejected", "no_response")) %>%
+  mutate(topic = case_when(
+    topic %in% c("dissenting worship", "imprisoned debtors") ~ "other",
+    TRUE ~ topic
+  )) %>% 
+  ##some na gender... all from transcribed years, all but one=collective, just assume the last one is too
+  mutate(pet_gender=case_when(
+    is.na(pet_gender) ~ "na",
+    TRUE ~ pet_gender
+  )) %>%
+  mutate(petition_type_s = str_remove(petition_type, " *on *behalf *"))
+
+# ches_petition_responses_fct_shadow <-
+# ches_petition_responses_fct %>%
+#   bind_shadow(only_miss = TRUE)
+```
+
+## The data
+
+```{r}
+##from cheshire_7_qs_responses...
+##what is this *for*? i don't think it's doing anything now
+# ches_text %>%
+#   select(reference, text_orig) %>%
+#   separate(text_orig, into=c("text", "pt"), sep="(?=<(pt)>)", extra="merge", fill="right") %>%
+#   inner_join(
+# ches_qs_query %>%
+#   select(reference, has_response, response_details, response_cat, abstract, notes), by=c("reference")
+# ) %>%
+#   filter(!is.na(has_response)) %>%
+#   select(reference, pt, response_details, response_cat, has_response, abstract, notes) 
+
+###  write.xlsx("outputs/cheshire/ches_transcribed_check_responses_pt.xlsx", showNA = FALSE) ## _edited
+
+# checked_responses <-
+#   read_excel("/Users/sharonhoward/r_projects/petitions/outputs/cheshire/ches_transcribed_check_responses_pt_edited.xlsx")
+
+##can't see any difference... maybe I used checked to update the database? 
+# ches_text %>%
+#   select(reference, text_orig) %>%
+#   separate(text_orig, into=c("text", "pt"), sep="(?=<(pt)>)", extra="merge", fill="right") %>%
+#   inner_join(
+# ches_qs_query %>%
+#   select(reference, has_response, response_details, response_cat, abstract, notes), by=c("reference")
+# ) %>%
+#   filter(!is.na(has_response)) %>%
+#   select(reference, pt, response_details, response_cat, has_response)  %>%
+#   left_join(checked_responses %>% select(reference, has_response, response_cat), by="reference")
+```
+
+```{r}
+# petition responses is fine to use, same numbers as _query with photographed filter
+# ches_petition_responses %>%
+#   count(response_cat)
+```
+
+I'm working with a sample of 613 petitions from the Cheshire QS files between 1573 and 1798. I photographed all surviving petitions from every year ending in -8 between 1608 and 1798, plus every pre-1600 calendared petition. (My estimate is that there are in total about 5000 petitions in the files.) TPOP transcribed all the 16th-century petitions and a 1-in-20-year sample for the 17th and 18th centuries (years -08, -18, -38, -58, -78, -98); I abstracted the rest, and encoded all the responses. 
+
+I'm using only responses written on the petitions. This may miss a few responses recorded in separate documents, though I haven't found any while consulting the files. I've also examined  the 17th-century QS order books, but haven't found additional responses there; they're more useful for fleshing out the reasoning behind the brief summaries on the petitions. 
+
+I've decided to treat the absence of a recorded response as a type of *negative* response given that there are high response rates generally - about 70% of the petitions have an annotated response - and responses don't seem to be recorded anywhere else.
+
+The detailed coding categories:
+
+- **granted** = request granted in full
+- **grant_part** = request partially granted (eg smaller amount of relief than requested)
+- **grant_cond** = granted, but conditional on the petitioner doing something
+- **referred** = to be further investigated or mediated outside the court, usually by local JPs
+- **rejected_nil** = rejection with only the terse annotation "nil/nihil" or "nothing"
+- **rejected** = rejection with a reason given (including "absent")
+- **no_response** = no response written on the petition
+- **uncertain** = response (or probable response) couldn't be interpreted (eg damaged or illegible). 
+
+Simplified positive/negative:
+
+- **positive** = granted, grant_part, grant_cond or referred
+- **negative** = rejected_nil, rejected, no_response
+
+I'll exclude the small uncertain group from analysis (there are only 20, some of which may not be responses anyway), so I'm looking at 593 petitions.
+
+
+## Overview
+
+How often do petitioners get what they want?
+
+Overall, 56.3% of the 593 petitions received a *positive* response, which suggests is that petitioners to the Cheshire magistrates had a reasonable chance of getting at least part of what they wanted, but a positive outcome was far from guaranteed. 
+
+
+```{r waffle-responses-to-cheshire-qs-petitions, fig.alt='Waffle chart of positive vs negative responses to Cheshire petitions between 1573 and 1798; 56% of petitions received a positive response.'}
+ches_petition_responses_fct %>%
+  filter(response !="uncertain") %>%
+  count(response_s) %>%
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  labs(fill="type", title="Responses to Cheshire QS petitions 1573-1798", caption="1 square=1% of petitions")
+
+```
+
+229 (37.3%) requests were granted in full, 50 (8.4%) partially or conditionally and 55 (9.3%) were referred. 75 (12.6%) were rejected with a response and 184 (31%)  had no response. 
+
+```{r waffle-detailed-responses-to-cheshire-qs-petitions, fig.alt='Waffle chart of detailed response categories for Cheshire Quarter Sessions petitions.'}
+
+ches_petition_responses_fct %>%
+  count(response) %>%
+  ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+    scale_fill_brewer(palette = "RdYlBu") +
+  labs(fill="type", title="Breakdown of responses to petitions", caption="1 square=1% of petitions")
+```
+
+
+
+```{r}
+# waffle(
+#   ches_petition_responses %>%
+#   mutate(response = case_when(
+#     is.na(response_cat) ~ "no_response",
+#     TRUE ~ response_cat
+#   )) %>% 
+#   filter(response !="uncertain") %>%
+#   mutate(response = factor(response)) %>%
+#   mutate(response = fct_relevel(response, "granted", "grant_part", "grant_cond", "referred", "nothing", "rejected", "absent", "no_response")) %>%
+#   count(response) ,
+#   rows=20,
+#   title = "Responses to Cheshire QS Petitions 1573-1798"
+# )
+```
+
+```{r}
+# ches_petition_responses_fct %>%
+#   count(response_s) %>%
+#   mutate(p = n/sum(n)*100)
+```
+
+
+
+## In more depth
+
+Could variations in responses point to factors that increase or reduce the chances of success? 
+
+
+```{r}
+## % no response by topic
+# ches_petition_responses_fct %>%
+#   select(response_cat, topic)  %>%
+#   group_by(topic) %>%
+#   miss_var_summary() %>%
+#   ungroup() %>%
+#   inner_join(ches_petition_responses_fct %>% count(topic, name="n_topic"), by="topic") %>%
+#   mutate(topic = fct_reorder(topic, pct_miss)) %>%
+#   ggplot(aes(topic, pct_miss)) +
+#   geom_col(colour = "#484878", fill = "#484878", width=0.001) +
+#   geom_point(colour = "#484878", fill = "#484878", shape="diamond", aes(size=n_topic), show.legend = FALSE ) +
+#   coord_flip() +
+#   scale_color_discrete(guide = FALSE)  +
+#   labs(y="% no response", x=NULL)
+```
+
+```{r}
+## % no response by decade
+# ches_petition_responses_fct %>%
+#   select(response_cat, decade)  %>%
+#   group_by(decade) %>%
+#   miss_var_summary() %>%
+#   ungroup() %>%
+#   inner_join(ches_petition_responses_fct %>% count(decade, name="n_decade"), by="decade") %>%
+#   #mutate(decade = fct_reorder(factor(decade), pct_miss)) %>%
+#   ggplot(aes(decade, pct_miss)) +
+#   geom_col(colour = "black", fill = "black", width=0.001) +
+#   geom_point(aes(size=n_decade), shape="diamond",  show.legend = FALSE ) +
+#   #coord_flip() +
+#   scale_color_discrete(guide = FALSE)  +
+#   labs(y="% no_response")
+```
+
+
+### petition topics
+
+This is a set of broad topics manually assigned by the project for QS petitions; a couple of topics with very low numbers (dissenting worship, debtors - <10 petitions) have been merged into the "other" category.
+
+The proportional bar chart on the left shows the detailed breakdown of responses. The smaller chart on the right shows the % of positive responses and the size of the square indicates the relative size of the category.
+
+```{r proportional-bar-responses-cheshire-qs-petitions-by-topics, fig.alt='Dual chart of responses to petitions broken down by petition topics, ordered by % of positive responses: 1. Proportional stacked bar chart of detailed response categories to petitions; 2. "Bubble" chart of % of positive responses for each topic.'}
+
+ches_petition_responses_fct %>%
+  count(topic, response) %>%
+  inner_join(
+   ches_petition_responses_fct  %>%
+  count(topic, response_s, name="nrs") %>%
+  group_by(topic) %>%
+  mutate(p = nrs/sum(nrs)) %>%
+  ungroup() %>%
+  filter(response_s=="positive"), by="topic"
+  ) %>%
+  ggplot(aes(fct_reorder(topic, p), n, fill=response)) +
+  geom_col(position = "fill") +
+  #scale_fill_tableau() +
+  #scale_fill_colorblind() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  #scale_fill_viridis_d(option="inferno") + viridis really doesn't work for this...
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses") + #, title="Responses to Cheshire QS Petitions by topic 1573-1798")  +
+  
+ches_petition_responses_fct %>%
+  count(topic, response_s) %>%
+  group_by(topic) %>%
+  mutate(p = n/sum(n), nn=sum(n)) %>%
+  ungroup() %>%
+  filter(response_s=="positive") %>%
+  ggplot(aes(fct_reorder(topic, p), p)) +
+  geom_point(aes(size=nn), shape=0) + # 0= unfilled square
+  geom_point(size=0.1) +
+  scale_y_continuous(limits = c(0,1), labels = percent_format(), breaks = c(0,0.5,1)) +
+  #scale_size(breaks = c(20, 90, 160)) +
+  coord_flip() +
+  theme(axis.text.y=element_blank()) +
+  labs(y="% positive", x=NULL, size="petitions")  +
+  
+plot_layout(ncol=2, widths=c(3,1)) + plot_annotation(title="Responses by topic")
+
+# original to 1698
+#ggsave("fig/ches_qs_responses_topics_bar.png", width=7.30, height=4.5)
+#some differences from 2019 version - due to addition of 18th c data; filter to <1700 and they match
+```
+
+In some categories, the numbers may be too small to draw any real conclusions. Even so, it's noticeable that there is some relationship between the number of petitions in a topic and the likelihood of a positive response. The exceptions to this pattern are the largest category (litigation, 171 petitions and one of the lowest positive response rates at 44.4%) and employment (15 petitions, 73% positive responses).
+
+Interestingly, there are two very distinct clusters in positive rates. 
+
+```{r scatter-plot-positive-responses-topics-size, fig.alt='Scatter plot with text labels showing relations between % positive responses and number of petitions in topics, indicating two main clusters of topics; (mostly) small numbers <50% positive responses, larger numbers >60% positive.'}
+
+ches_petition_responses_fct %>%
+  add_count(topic, name="n_topic") %>%
+  count(response_s, topic, n_topic) %>%
+  # you've got positives for every year but if you didn't this might need complete() or sthg...
+  filter(response_s=="positive") %>%
+  mutate(p = n/n_topic) %>%
+  arrange(p) %>%
+  mutate(grp = case_when(
+    n_topic>150 | p>0.7 ~ "u",
+    p<0.5  ~ "g1",
+    p>0.6 ~ "g2",
+    TRUE ~ "u"
+  )) %>%
+  #mutate(topic = fct_reorder(topic, p)) %>%
+  ggplot(aes(n_topic, p)) +
+  ggforce::geom_mark_ellipse(aes(fill = grp, filter = grp != 'u'), show.legend = F) +
+  geom_point() +
+  geom_text(aes(label=topic), size=3, nudge_y = 0.01) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  labs(y="% responses positive", x="number of petitions in topic", title="Positive response clusters by size of topic")
+```
+
+Another feature to note is the unusually high percentage of conditional responses for cottage petitions; it was very common for a request to be allowed to build a cottage to be granted on condition of obtaining the consent of the lord of the manor.
+
+```{r}
+# ches_petition_responses_fct %>%
+#   count(topic, response_s) %>%
+#   group_by(topic) %>%
+#   mutate(p = n/sum(n), nn=sum(n)) %>%
+#   ungroup() %>%
+#   filter(response_s=="positive") %>%
+#   arrange(p)
+```
+
+
+
+### change over time
+
+
+```{r proportional-bar-responses-cheshire-qs-petitions-by-years, fig.alt='Dual chart of responses to petitions broken down by year: 1. Proportional stacked bar chart of detailed response categories to petitions; 2. "Bubble" chart of % of positive responses for each topic.'}
+
+ches_petition_responses_fct %>%
+  mutate(year = case_when(
+    decade < 1600 ~ "1500s",
+    decade > 1690 ~ "1700s",
+    TRUE ~ as.character(year)
+  )) %>%
+  mutate(year = factor(year)) %>%
+  count(response, year)  %>%
+  ggplot(aes(fct_rev(year), n, fill=response)) +
+  geom_col(position = "fill") +
+  scale_fill_brewer(palette = "RdYlBu") +
+  coord_flip() +
+    theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses") + #, title="Responses to Cheshire QS Petitions by topic 1573-1798")  +
+  
+ches_petition_responses_fct %>%
+  mutate(year = case_when(
+    decade < 1600 ~ "1500s",
+    decade > 1690 ~ "1700s",
+    TRUE ~ as.character(year)
+  )) %>%
+  mutate(year = factor(year)) %>%
+  count(year, response_s) %>%
+  group_by(year) %>%
+  mutate(p = n/sum(n), nn=sum(n)) %>%
+  ungroup() %>%
+  filter(response_s=="positive") %>%
+  ggplot(aes(fct_rev(year), p)) +
+  geom_point(aes(size=nn), shape=0) + # 0= unfilled square
+  geom_point(size=0.1) +
+  scale_y_continuous(limits = c(0,1), labels = percent_format(), breaks = c(0,0.5,1)) +
+  #scale_size(breaks = c(20, 90, 160)) +
+  coord_flip() +
+  theme(axis.text.y=element_blank()) +
+  labs(y="% positive", x=NULL, size="petitions")  +
+  
+plot_layout(ncol=2, widths=c(3,1)) + plot_annotation(title="Responses by year")
+```
+
+
+Pre-1600 and post-1700 petitions have been combined because the annual numbers are very small. There were only 7 petitions in 1698, all of them for poor relief, so it's difficult to be sure why the success rate was so exceptional in that year.
+
+The JPs' diligence in 1648 is particularly noteworthy; there were almost 150 petitions during that year, but only 22 have no response at all. Moreover, apart from 1698, it was the most successful year for petitioners.
+
+There is a *possible* trend overall - the positive % rising until mid-century and declining afterwards - but 1628 and 1688 really confound any such pattern. Unlike topics, there are no clear clusters or correlations between petition numbers and positive %.
+
+```{r}
+# ches_petition_responses_fct %>%
+#   mutate(year = case_when(
+#     decade < 1600 ~ "1500s",
+#     decade > 1690 ~ "1700s",
+#     TRUE ~ as.character(year)
+#   )) %>%
+#   mutate(year = factor(year)) %>%
+#   add_count(year, name="n_year") %>%
+#   count(response_s, year, n_year) %>%
+#   # you've got positives for every year but if you didn't this might need complete() or sthg...
+#   filter(response_s=="positive") %>%
+#   mutate(p = n/n_year) %>%
+#   ggplot(aes(n_year, p)) +
+#   #geom_smooth() +
+#   geom_label(aes(label=year)) +
+#   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,1)) +
+#   labs(x="number of petitions in year", y="% positive responses", title="Positive responses and yearly counts")
+```
+
+
+### petition type
+
+Variations here appear to be much less significant than previous categories of analysis.
+
+Three types
+
+- single petitioner (413)
+- multiple named petitioners (72)
+- collective (eg "inhabitants of Nantwich") (108)
+
+There is very little difference in overall positive/negative responses to the three types, though single-petitioner petitions are more likely to receive a positive response.
+
+```{r waffle-responses-to-cheshire-qs-petitions-by-petition-type, fig.alt='Waffle chart of positive vs negative responses to petitions, faceted by petition type (single, group, collective); shows not much variation between the types.'}
+
+ches_petition_responses_fct %>%
+  count(petition_type_s, response_s) %>%
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  facet_wrap(~petition_type_s) +
+  labs(title = "Simplified responses by petition type", fill="response")
+```
+
+The responses breakdown does show more variation. The single category is far less likely to get no response at all, *and* is most likely to have requests granted in full. (But, interestingly, collective petitions are most likely to have a reason given for rejection.)
+
+```{r waffle-detailed-responses-to-cheshire-qs-petitions-by-petition-type, fig.alt='Waffle chart of positive vs negative response categories to petitions faceted by petition type.'}
+
+ches_petition_responses_fct %>%
+  count(petition_type_s, response) %>%
+    ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  facet_wrap(~petition_type_s) +
+  labs(title="Responses by petition type") 
+```
+
+
+### petition gender type
+
+(Collective petitions excluded.)
+
+A summary of gender of all petitioners (but not additional subscribers) per petition:
+
+- f = female only (128 petitions)
+- m = male only (343)
+- fm = mixed gender (26)
+
+I might have expected slightly more variation in this category as I know there are gendered variations in petition topics; I'll need to explore this further.
+
+```{r}
+# how can na be < collective in petition type? f and m collective... on behalf. exclude them
+# ches_petition_responses_fct %>%
+#   filter(petition_type_s !="collective") %>%
+#   count(pet_gender)
+```
+
+
+```{r waffle-responses-to-cheshire-qs-petitions-by-petition-gender-type, fig.alt='Waffle chart of positive vs negative responses to petitions faceted by petition gender type (female, male, mixed); differences between genders are smaller than I might have expected.'}
+
+ches_petition_responses_fct %>%
+  filter(petition_type_s!="collective") %>%
+  add_count(pet_gender, name="n_gen") %>%
+  count(response_s, pet_gender, n_gen) %>%
+#mutate(p = n/n_gen)
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) +
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  facet_wrap(~pet_gender) +
+  labs(fill="response", title="Simplified responses by petition gender type", caption="1 square=1% of petitions")
+```
+
+Again, the more detailed breakdown of responses shows up more subtle variations. It appears that petitions involving female petitioners were less likely to have requests granted *in full* and more likely to have their cases referred to JPs for further investigation.
+
+```{r waffle-detailed-responses-to-cheshire-qs-petitions-by-petition-gender-type, fig.alt='Waffle chart of detailed response categories to petitions faceted by petition gender.'}
+##alt text: chart type of type of data where reason for including chart
+ches_petition_responses_fct %>%
+  filter(petition_type_s !="collective") %>%
+  count(pet_gender, response) %>%
+    ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  facet_wrap(~pet_gender) +
+  labs(title="Responses by petition gender type") 
+```
+
+
+
+
+
+
+```{r}
+# percentage "uncertain" by decade (response_s) - not much variation except where v small no of records
+# ches_petition_responses_fct %>%
+#   select(response_s, decade)  %>%
+#   group_by(decade) %>%
+#   miss_var_summary() %>%
+#   ungroup() %>%
+#   inner_join(ches_petition_responses_fct %>% count(decade, name="n_decade"), by="decade") %>%
+#   #mutate(decade = fct_reorder(factor(decade), pct_miss)) %>%
+#   ggplot(aes(decade, pct_miss)) +
+#   geom_col(colour = "black", fill = "black", width=0.001) +
+#   geom_point(aes(size=n_decade), shape="diamond",  show.legend = FALSE ) +
+#   #coord_flip() +
+#   scale_color_discrete(guide = FALSE)  +
+#   labs(y="% uncertain")
+```
+
+
+
+```{r}
+##from workshop_presentation_202009
+# ches_petition_responses %>%
+#   mutate(decade = case_when(
+#     decade < 1600 ~ 1500,
+#     decade > 1690 ~ 1700,
+#     TRUE ~ decade
+#   ))%>%
+#   mutate(decade_label = paste0(decade, "s")) %>%
+#   filter(has_response !="illegible") %>%
+#   count(decade_label, has_response) %>%
+#   ggplot(aes(x=decade_label, y=n, fill=has_response)) +
+#   geom_col(position = "fill") +
+#   scale_y_continuous(labels = percent_format()) +
+#   scale_fill_tableau()
+```
+
+
+
+
+
+
+

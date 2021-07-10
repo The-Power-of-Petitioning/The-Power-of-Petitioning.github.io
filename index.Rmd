@@ -1,7 +1,7 @@
 ---
-title: "TPOP exploration"
+title: "The Power of Petitioning"
 description: |
-  Welcome to the website. I hope you enjoy it!
+  Exploring and visualising the power of early modern petitioning
 site: distill::distill_website
 ---
 
@@ -15,4 +15,40 @@ knitr::opts_chunk$set(echo = FALSE)
 # https://rstudio.github.io/distill/publish_website.html#github-pages
 
 ```
+
+
+This a website by [Sharon Howard](http://sharonhoward.org) for exploring and visualising data created by and for the [Power of Petitioning in the 17th Century](https://petitioning.history.ac.uk/) (TPOP).
+
+In the first instance, I'll be focusing on [Cheshire petitions](https://www.british-history.ac.uk/petitions/cheshire) because I'm writing a case study on the county, and particularly on exploring themes that I want to think about in the case study. But later I hope to add some pages on other collections.
+
+The second reason for the website is to give me a place for slightly more thought-out and smartened-up versions of visualisations I've posted from time to time on Twitter (and keep losing track of). But pieces are likely to remain quite short, with minimal discussion.
+
+## data
+
+### TPOP collections
+
+- Quarter Sessions:
+  - [Cheshire QS](https://www.british-history.ac.uk/petitions/cheshire)
+  - [Derbyshire](https://www.british-history.ac.uk/petitions/derbyshire)
+  - [Staffordshire](https://www.british-history.ac.uk/petitions/staffordshire) 
+  - [Westminster](https://www.british-history.ac.uk/petitions/westminster)
+  - [Worcestershire](https://www.british-history.ac.uk/petitions/worcs-quarter-sessions)
+- [House of Lords](https://www.british-history.ac.uk/petitions/house-of-lords)
+- [State Papers](https://www.british-history.ac.uk/petitions/state-papers)
+
+potential extra stuff
+
+- catalogues data
+- printed petitions in EEBO-TCP
+- [London Lives Petitions](http://london.sharonhoward.org)
+
+## planned themes
+
+- contexts
+- [responses](responses.html)
+- topics
+- gender
+- supporters
+- texts
+
 

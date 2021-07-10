@@ -1,12 +1,8 @@
 name: "."
-title: "TPOP exploration"
-description: |
-  TPOP exploration
+title: "Exploring the Power of Petitioning"
 output_dir: "docs"
 navbar:
   right:
     - text: "Home"
       href: index.html
-    - text: "About"
-      href: about.html
 output: distill::distill_article
