@@ -667,7 +667,88 @@ ches_petition_responses_fct %>%
   labs(title="Responses by petition gender type") 
 ```
 
+[Updated] Breakdown by topic as well as gender (excluding mixed gender).
 
+- Greater tendency for female petitions to be referred is clear across multiple topic categories. (The only topics with a higher % of male referrals are ones that have very very few female petitions.)
+- The situation with fully granted requests is a bit more mixed, but most of the lower female % is probably accounted for by the two large (and very distinct!) categories of litigation and poor relief.
+
+```{r proportional-bar-detailed-responses-to-cheshire-qs-petitions-by-petition-gender-type-topic, fig.alt='Proportional stacked bar chart of detailed response categories to petitions broken down by topic and petition gender (excluding mixed gender).'}
+ches_petition_responses_fct %>%
+  filter(pet_gender %in% c("m" , "f")) %>%
+  count(topic, response, pet_gender) %>%
+  # inner_join(
+  #  ches_petition_responses_fct  %>%
+  # count(topic, response_s, name="nrs") %>%
+  # group_by(topic) %>%
+  # mutate(p = nrs/sum(nrs)) %>%
+  # ungroup() %>%
+  # filter(response_s=="positive"), by="topic"
+  # ) %>%
+  ggplot(aes(fct_rev(topic), n, fill=response)) +
+  geom_col(position = "fill") +
+  facet_wrap(~pet_gender) +
+  #scale_fill_tableau() +
+  #scale_fill_colorblind() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  #scale_fill_viridis_d(option="inferno") + viridis really doesn't work for this...
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses", title="Responses by topic and gender (m/f only)")
+# female petitioners were less likely to have requests granted *in full* and more likely to have their cases referred
+```
+
+
+```{r}
+# cpr_gender_resp <-
+# ches_petition_responses_fct %>%
+#   filter(petition_type_s !="collective")
+#with(ches_petition_responses_fct, table(pet_gender, response))
+# mosaic all grey!
+```
+
+```{r}
+#vcd::mosaic(with(cpr_gender_resp, table(pet_gender, topic)), shade=TRUE, legend=FALSE)
+```
+
+
+```{r}
+#vcd::mosaic(with(ches_petition_responses_fct, table(topic, response)), shade=TRUE, legend=FALSE)
+```
+
+
+```{r}
+#vcd::mosaic(with(ches_petition_responses_fct, table(petition_type_s, response)), shade=TRUE)
+```
+
+```{r message=FALSE}
+#library(vcd)
+```
+
+```{r}
+# structable(c1 + c2 ~ r1, df) ####
+# specify col ~ row variables
+# cpr_fm <-
+#   ches_petition_responses_fct %>%
+#   filter(pet_gender %in% c("m", "f"))
+
+# mosaic(
+#   structable(topic ~ response + pet_gender, cpr_fm), 
+#   shade = TRUE, legend=FALSE,
+#   #spacing = spacing_increase(start = unit(0.2, "lines"), rate = 2) , 
+#     labeling_args = list(
+#       #clip = c(response=TRUE, topic=FALSE, pet_gender=FALSE),
+#       abbreviate = c(response=6, topic=8),
+#       set_varnames=c(topic="", response="", pet_gender=""),
+#       rot_labels = c(90,0,0,0),
+#       offset_labels = c(0.7, 0, 0,0.6),
+#       #pos_varnames = c("left", "left", "left"),
+#       gp_labels = grid::gpar(fontsize=10)
+#     )
+#     )
+# female petitioners were less likely to have requests granted *in full* and more likely to have their cases referred
+```
 
 
 
