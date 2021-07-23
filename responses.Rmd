@@ -2,6 +2,8 @@
 title: "Responses to petitions"
 description: |
   Did petitioners get what they wanted?
+author:
+  - name: Sharon Howard 
 output:
   distill::distill_article:
     toc: true
