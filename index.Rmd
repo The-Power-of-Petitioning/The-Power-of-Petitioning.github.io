@@ -2,7 +2,9 @@
 title: "The Power of Petitioning"
 description: |
   Exploring and visualising the power of early modern petitioning
-site: distill::distill_website
+output:
+  distill::distill_article:
+    toc: false
 ---
 
 ```{r setup, include=FALSE}
@@ -18,12 +20,14 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 This a website by [Sharon Howard](http://sharonhoward.org) for exploring and visualising data created by and for the [Power of Petitioning in the 17th Century](https://petitioning.history.ac.uk/) (TPOP).
+Most pieces are likely to be quite short, with commentary focusing on explanation of the visuals rather than discussion of findings.
 
-In the first instance, I'll be focusing on [Cheshire petitions](https://www.british-history.ac.uk/petitions/cheshire) because I'm writing a case study on the county, and particularly on exploring themes that I want to think about in the case study. But later I hope to add some pages on other collections.
+In the first instance, I'll be focusing on [Cheshire petitions](https://www.british-history.ac.uk/petitions/cheshire) because I'm writing a case study on the county, and particularly on exploring themes that I want to think about in the case study.
 
-The second reason for the website is to give me a place for slightly more thought-out and smartened-up versions of visualisations I've posted from time to time on Twitter (and keep losing track of). But pieces are likely to remain quite short, with minimal discussion.
+The second reason for the website is to give me a place for slightly more thought-out and smartened-up versions of visualisations I've posted from time to time on Twitter (and keep losing track of!). 
 
-## data
+
+## Data
 
 ### TPOP collections
 
@@ -36,17 +40,17 @@ The second reason for the website is to give me a place for slightly more though
 - [House of Lords](https://www.british-history.ac.uk/petitions/house-of-lords)
 - [State Papers](https://www.british-history.ac.uk/petitions/state-papers)
 
-potential extra stuff
+### potential extra datasets
 
-- catalogues data
-- printed petitions in EEBO-TCP
+- catalogues data (including more QS, Chester Assembly petitions...)
+- printed petitions in EEBO-TCP (a small corpus of ~400 petitions)
 - [London Lives Petitions](http://london.sharonhoward.org)
 
-## planned themes
+## Themes for exploration
 
 - contexts
-- [responses](responses.html)
-- topics
+- [responses](responses.html) (Cheshire QS)
+- [topics](topics.html) (QS)
 - gender
 - supporters
 - texts
