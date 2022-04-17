@@ -71,29 +71,8 @@ Two counties, Cheshire and Staffordshire, have been sampled by the simple method
 # includes packages atm
 #source(here::here("_data", "data.R"))
 
-# packages ####
 
-# stuff to read data
-
-#library(xlsx) # to write to xlsx
-library(readxl) # for reading xlsx. there is also a writexl...
-library(readODS)
-library(RMariaDB)
-
-# cleaning up data
-library(janitor)
-library(lubridate)
-library(scales)
-
-# knitr tables etc
-library(knitr)
-library(kableExtra)
-
-
-
-# tidy stuff
-library(tidytext)
-library(tidyverse)
+source(here::here("_data.R"))
 
 # viz, ggplot extensions etc
 library(ggthemes)
@@ -115,173 +94,8 @@ library(RColorBrewer)
 # nb.cols <- 18
 # mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
 # scale_fill_manual(values = mycolors) +
-```
 
 
-```{r message=FALSE}
-# level1_data ####
-## data
-### level 1 [bho]
-qs_level1_petitions_latest <-
-  read_tsv(here::here("_data", "qs_metadata_petitions_20200810.tsv")) 
-
-# original level1_petitions had full text and latest doesn't, but shouldn't matter here
-# petition_type is also different from pet_type which may need some adjustments lol
-
-# lots of docyear 1620 dodgy (46), and 1636 (6), 1650 has 5
-# 1620 and 1636 problems are all westmr. 1636 = all 1636-40 so that's ok for decade. all but a couple of the westmr 1620 are 1620-40
-# 1650 all derbys, and they *are* all 1650s.
-all_qs_level1_petitions <-
-qs_level1_petitions_latest %>%
-  mutate(year = case_when(
-    documentyear=="1620-1621" ~ 1620,
-    documentyear=="1620-1628" ~ 1625,
-    documentyear=="1634-1639" ~ 1635,
-    documentyear=="1636-1640" ~ 1638,
-    documentyear=="1639-1640" ~ 1640,
-    documentyear %in% c("1649-1659", "1650-1659", "n.d. [1650s]") ~ 1655,
-    documentyear=="1680-1689" ~ 1685,
-    TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""), na="[1620-1640]")
-  ))  %>%
-  mutate(decade = year - (year %% 10) ) %>%
-#   # this will only allow exact years
-  mutate(year_strict = case_when(
-    str_detect(documentyear, "\\D") ~ NA_real_,
-    TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""))
-  ))  %>%
-#   # the opposite extreme: gives *everything* a year, using the first year if there's a range, for when you want to restrict eg to 1580-1720 but exact dates within the range don't matter
-   mutate(year_parse = parse_number(str_replace(documentyear, "n.d. \\[", ""))) %>%
-   mutate(topic = str_replace(topic, "chartiable brief", "charitable brief"))
-
-# 
-# qs_level1_petitions <-
-#   qs_level1_petitions_latest %>%
-#   # for cheshire only need this
-#   mutate(year = parse_number(documentyear)) %>%
-#   mutate(decade = year - (year %% 10) ) %>%
-#   mutate(petition_type = str_replace_all(petition_type, " +", " "))
-
-### cheshire additional
-# named_petrs for collective should be 0 not NA sigh
-ches_extra_c18_petitions <-
-  read_tsv(here::here("_data", "ches_c18_extra_petitions_20200824.tsv")) %>%
-  mutate(named_petrs = case_when(
-    is.na(named_petrs) ~ 0,
-    TRUE ~ named_petrs
-  ))
-
-## needs doc_no added, which must be distinct from ches level 1 doc_nos; there are 292 ches level 1 petitions so just start at 501
-# could call it level "1a"! - the only level 1 metadata missing is subtopic and detailed sig types for subscribers, but have marks noted (see cheshire_8 petrs_subs)
-# added cheshire 1708 (only 2 petitions)
-# has year
-
-ches_level2_petitions <-
-  readRDS(here::here("_data", "ches_qs_nonbho_petitions_topics_gender_type_20200204.Rds")) %>%
-  # add more detailed name type to diff collective petition subscribers from named petition subscribers...
-  left_join(
-    readRDS(here::here("_data", "ches_qs_nonbho_petr_subs_gender_20200205.Rds")) %>%
-      filter(petr_or_sub=="petr") %>%
-      distinct(reference, name_type)  %>% 
-      mutate(pt = case_when(
-        name_type=="behalf" ~ name_type,
-        name_type=="petr" ~ "named",
-        name_type=="not_named" ~ "collective"
-      )) %>%
-      group_by(reference) %>%
-      arrange(desc(name_type)) %>% 
-      dplyr::summarise(pet_type_expand = paste(pt, collapse = " ")) %>%
-      ungroup() , by=c("reference")
-  ) %>%
-  # keep county abbreviated but capitalise
-  mutate(county = str_to_title(county)) %>%
-  ## add extra 18th c
-  bind_rows(
-    ches_extra_c18_petitions %>% select(-sub_gender) %>%
-      mutate(pet_type_expand = case_when(
-        pet_type=="collective" ~ "collective",
-        pet_type %in% c("single", "multiple") ~ "named"
-      ))
-  ) %>%
-  # put this here instead of further up and it'll add it to the extras as well
-  mutate(year_strict=year, year_parse=year) %>%
-  # i think this will now match level 1... nope try again
-  #rename(petition_type=pet_type) %>%
-  mutate(petition_type = case_when(
-    str_detect(pet_type, "collective|multiple|single") ~ pet_type,
-    pet_type=="named on behalf" ~ "multiple on behalf",
-    named_petrs>1 ~ "multiple",
-    named_petrs==1 ~ "single"
-  ))  %>%
-  mutate(doc_no = recordid + 500) # doesn't matter too much where doc_no starts as long as it won't clash with level1
-
-
-
-
-# Herts, Kent, Sussex 
-# topics, petitioner information (gender), petition type, but does not have information about subscribers beyond counts (so no gender) and doesn't have signature information
-# also need to add expanded name types...
-# 
-# see qs 202002 metadata
-load(here::here("_data", "add_counties_hks_metadata_20200210.RData"))
-
-
-# add doc_no in case it matters for grouping anywhere anywhere - reuse rowid
-# all references are unique without needing county, but you should have been more careful about that...
-#leave out sussex and kent, numbers are so small
-
-hks_level2_petitions <-
-  add_counties_hks_petitions %>%
-  filter(county=="Herts") %>%
-# decades 0-9 
-  mutate(decade = year - (year %% 10), year_strict=year, year_parse=year) %>%
-  inner_join(
-    add_counties_hks_petitioners %>%
-      distinct(reference, county, name_type)  %>% 
-      mutate(pt = case_when(
-        name_type=="behalf" ~ name_type,
-        name_type=="petr" ~ "named",
-        name_type=="not_named" ~ "collective"
-      )) %>%
-      group_by(reference, county) %>%
-      arrange(desc(name_type)) %>% 
-      dplyr::summarise(pet_type_expand = paste(pt, collapse = " "), .groups="drop_last") %>%
-      ungroup() ,   by=c("reference", "county")
-  ) %>% mutate(doc_no = rowid)
-
-
-
-
-#all_level_1_and_2 ####
-
-all_level2 <-
-all_qs_level1_petitions %>%
-  mutate(level=1) %>%
-  bind_rows(
-    ches_level2_petitions %>% mutate(level=2), 
-    hks_level2_petitions %>% mutate(level=2)
-    )  %>%
-  mutate(gender = case_when(
-    pet_gender=="f" ~ "female", 
-    pet_gender=="fm" ~ "mixed", 
-    pet_gender=="m" ~ "male", 
-    TRUE ~ "na")) %>%
-  select(reference, doc_no, ll_img, county, decade, petitioner, topic, subtopic, petition_type, gender, pet_gender, named_petrs, subscribers, sub_gender, sort, pet_type, level, year, year_strict, year_parse, pet_type_expand, documentyear) %>%
-  rowid_to_column("all_id")
-
-# db_id, recordid used for ches only, but mixed
-# rowid used for hks only
-# not_named hks only
-# has_sub not hks, not all ches
-# abstract a bit mixed too
-
-#omg petition_type/pet_type/pet_type_expand are a right mess. ignore them for now unless you really need them
-
-```
-
-
-
-
-```{r}
 #complete control of colours, use in ggplot: scale_*_manual(values=topic_colours)
 topic_colours <- c("alehouse" = "#a6cee3",	"charitable brief" = "#1f78b4",	"charitable" = "#1f78b4",	"cottage" =	"#b2df8a", "dissenting worship" =	"#33a02c", "dissenters"="#33a02c", "employment" =	"#ff7f00", "imprisoned debtors" =	"#fdbf6f", "debtors" =	"#fdbf6f", "litigation" = "#e31a1c", "military relief" = "#fb9a99", "officeholding" =	"#ffed6f", "other" = "#8c510a", "paternity"	=	"#cab2d6", "poor relief" = "#6a3d9a", "rates" = "#80cdc1")
 
@@ -301,7 +115,7 @@ Which were the most popular topics of QS petitions?
 ##alt text: chart type of type of data where reason for including chart
 # two levels all ####
 #i think this works best for overall view of topics; treemap is pretty but less clear....
-all_level2 %>%
+qs_petitions_combined %>%
   count(topic, sort=TRUE) %>%
   mutate(topic=fct_reorder(topic, n)) %>%
   ggplot(aes(y=n, x=topic, fill=topic)) +
@@ -313,6 +127,9 @@ all_level2 %>%
 ```
 
 
+
+
+
 ## Comparing counties: three views
 
 ### a bar chart
@@ -321,7 +138,7 @@ The colour coding here is not strictly essential but I find it helpful for compa
 
 ```{r topics_counties_bar, fig.alt='horizontal bar chart of QS petition topics, faceted by county; litigation is top topic in Ches, Staffs and Westmr, poor relief top in Derbyshire, Herts and Worcs.'}
 
-all_level2 %>%
+qs_petitions_combined %>%
   count(topic, county, sort=TRUE) %>%
 #   # topic2 for the x axis, keep topic as it is for fill
   mutate(topic2 = reorder_within(topic, n, county)) %>%
@@ -340,7 +157,7 @@ all_level2 %>%
 But switching round the comparisons. (For convenience, "other" is excluded this time.) Suggests that within most topics there aren't massive differences between counties; notable exceptions = Westminster/employment and Derbyshire/poor relief.
 
 ```{r topics_county_topics_pc_bar, fig.alt='Faceted bar chart of QS petition topics, comparing topic percentage for each county.'}
-all_level2 %>%
+qs_petitions_combined %>%
   filter(!topic %in% c("other")) %>%
   count(topic, county, sort=TRUE) %>%
   group_by(county) %>%
@@ -379,7 +196,7 @@ This method can produce some surprises. Eg, litigation in Cheshire looks big, an
 ```{r  topics_counties_mosaic, fig.alt='mosaic plot of QS petition topics by county; highlighting significat over- or under-representation of topics.'}
 county_topic_tab <-
 with(
-  all_level2 %>%
+  qs_petitions_combined %>%
   mutate(county = str_to_title(county)) %>%
   mutate(topic = case_when(
     topic %in% c("dissenting worship", "imprisoned debtors", "other") ~ NA_character_,
@@ -418,7 +235,7 @@ mosaic(~county + topic,
 NB earlier caveats about the problems caused by missing dates and by sampling. This section should be considered very provisional.
 
 ```{r}
-# all_level2 %>% 
+# qs_petitions_combined %>% 
 #   filter(!is.na(decade)) %>%
 #   count(decade, county) %>%
 #   ggplot(aes(x=decade, y=n)) +
@@ -431,10 +248,10 @@ NB earlier caveats about the problems caused by missing dates and by sampling. T
 
 ### stacked bar chart
 
-This is a popular type of graph... but I think there are far too many categories for it to be really effective, even after dropping the smallest topics and "other".
+This is a popular type of graph... but there are far too many categories for it to be really effective, even after dropping the smallest topics and "other".
 
 ```{r topics_decades_stacked_bar, fig.alt='stacked bar chart of QS petition topics per decade; cluttered and hard to make much sense of what is going on.'}
-all_level2 %>% 
+qs_petitions_combined %>% 
   filter(#!topic %in% c("other", "dissenting worship", "imprisoned debtors"), 
          !is.na(decade)) %>%
   count(decade, topic) %>%
@@ -465,7 +282,7 @@ Faceting (or "small multiples") can be a more effective way of showing complex d
 
 ```{r warning=FALSE,  topics_decades_faceted_bar, fig.alt='faceted bar chart of QS petition topics per decade; a bit easier to make comparisons than with a stacked bar chart.'}
 # i think this is as effective as anything, once you use scales=free_y!
-all_level2 %>% 
+qs_petitions_combined %>% 
   #filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors"), !is.na(decade)) %>%
   count(decade, topic) %>%
   group_by(topic) %>%
@@ -483,7 +300,7 @@ all_level2 %>%
 
 
 ```{r}
-# all_level2 %>% 
+# qs_petitions_combined %>% 
 #   filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors"), !is.na(decade), decade < 1730) %>%
 #   count(decade, topic) %>%
 #   group_by(topic) %>%
@@ -501,12 +318,12 @@ all_level2 %>%
 
 (white tiles represent 0s)
 
-This heatmap is an example of how stripping away subtlety can be useful to draw attention to particularly exceptional patterns. In this case, the particularly "hot" cluster of petitions for military pensions in the 1650s dramatically highlights one legacy of the Civil Wars. But it also indicates that a number of other topics *also* peak around the middle of the 17th century. The heatmap also highlights the sparsity of petitions in many topics after 1700, except for the new topics of dissenting worship and imprisoned debtors.
+This heatmap is an example of how stripping away subtlety can be useful to draw attention to particularly strong patterns. In this case, the "hot" cluster of petitions for military pensions in the 1650s dramatically highlights one legacy of the Civil Wars. But it indicates that a number of other topics were *also* at or near peaking around the middle of the 17th century. The heatmap also highlights the sparsity of petitions in many topics after 1700, except for the new topics of dissenting worship and imprisoned debtors.
 
 ```{r topics_decades_pc_heatmap, fig.alt='heatmap of QS petition topics per decade, using percentages of topic rather than numbers; useful to draw attention to the most exceptional topic-decades.'}
 # heatmap of topics
 
-all_level2 %>% 
+qs_petitions_combined %>% 
   filter(#!topic %in% c("other", "dissenting worship", "imprisoned debtors"), 
          !is.na(decade) ) %>%
   count(decade, topic) %>%
@@ -528,7 +345,7 @@ all_level2 %>%
 
 ```{r}
 # ??????
-# all_level2 %>% 
+# qs_petitions_combined %>% 
 #   filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors"), !is.na(decade), decade < 1730) %>%
 #   count(decade, topic) %>%
 #   mutate(topic = fct_rev(topic)) %>%
@@ -551,7 +368,7 @@ all_level2 %>%
 
 #The 44 Westminster petitions that can't be dated to within a decade - and have therefore been excluded from all the charts above - *can* all be approximately dated to between 1620 and 1640, and topics are very unevenly distributed. 
 
-# all_level2 %>%
+# qs_petitions_combined %>%
 #   filter(county=="Westmr") %>%
 #   select(decade, topic) %>%
 #   mutate(dated_decade = if_else(is.na(decade), "no", "yes")) %>%
@@ -566,7 +383,7 @@ all_level2 %>%
 #   labs(x=NULL, y="% of petitions in topic", title="The problem with Westminster", fill="dated\ndecade")
 # 
 # # the rest
-# all_level2 %>%
+# qs_petitions_combined %>%
 #   filter(county!="Westmr") %>%
 #   select(decade, topic) %>%
 #   mutate(dated_decade = if_else(decade<1640, "no", "yes")) %>%
@@ -593,7 +410,7 @@ But this time a "proportional" stacked chart to show % instead of numbers. Again
 
 ```{r topics_gender_prop_stacked_bar, fig.alt='proportional stacked bar chart of QS petition topics by gender.'}
 #NA gender? seem to be a mix in terms of county but all= collective (1 "multiple") so ok
-all_level2 %>% 
+qs_petitions_combined %>% 
   filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors") ) %>%
   count(gender, topic) %>%
   ggplot(aes(x=gender, y=n, fill=topic)) +
@@ -615,16 +432,16 @@ Conversely, eg, although you can see in the bar chart a lower female than male %
 ```{r topics_gender_mosaic, fig.alt='mosaic plot of QS petition topics by gender; notable features include: female/paternity and poor relief petitions are over-represented, male paternity under-represented.'}
 gender_topic_tab <-
 with(
-  all_level2 %>%
+  qs_petitions_combined %>%
   mutate(topic = case_when(
     topic %in% c("dissenting worship", "imprisoned debtors", "other") ~ NA_character_,
     TRUE ~ topic
   ))  %>%
-  mutate(gender = case_when(
-    pet_gender=="f" ~ "female", 
-    pet_gender=="fm" ~ "mixed", 
-    pet_gender=="m" ~ "male", 
-    TRUE ~ "na"))  %>%
+  # mutate(gender = case_when(
+  #   pet_gender=="f" ~ "female", 
+  #   pet_gender=="fm" ~ "mixed", 
+  #   pet_gender=="m" ~ "male", 
+  #   TRUE ~ "na"))  %>%
   filter(!is.na(topic)) ,
   table(topic, gender)
 )
@@ -649,13 +466,13 @@ mosaic(~gender + topic,
 
 ### heatmap
 
-The strong association between mixed gender petitions and litigation stands out even more strongly here than in the mosaic. It's an intriguing one, even allowing for the small size of the group.
+The strong association between mixed gender petitions and litigation stands out even more here than in the mosaic. It's an intriguing one, even allowing for the small size of the group.
 
 
 ```{r topics_gender_heatmap, fig.alt='heatmap of QS petition topics by gender, using percentage of gender rather than numbers. Intriguing hotspot for mixed gender/litigation petitions.'}
 # heatmap of topics
 
-all_level2 %>% 
+qs_petitions_combined %>% 
   count(gender, topic) %>%
   group_by(gender) %>%
   mutate(p = n/sum(n)*100) %>%

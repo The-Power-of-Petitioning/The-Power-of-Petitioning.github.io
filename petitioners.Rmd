@@ -1,0 +1,1217 @@
+---
+title: "Petitioners and supporters"
+description: |
+  A closer look at the people behind petitions
+author:
+  - name: Sharon Howard 
+output: distill::distill_article
+---
+
+
+## Quarter Sessions petitioners 
+
+I'm using data from TPOP's transcribed QS collections (Cheshire, Derbyshire, Staffordshire, Westminster and Worcestershire), as well as additional data I've collected for a larger sample of untranscribed Cheshire files, and slightly less detailed data for Hertfordshire, for a total of 2141 petitions.
+
+What is a petitioner? These petitions have two types of participant. Most QS petitions have one or more named **petitioners** at the head of the petition (often, "The humble petition of X"), including in some cases people on whose behalf the petition was made. Meanwhile, **subscribers** are those who signed their names in support of the petition, either in the space below the main text or on an attached document. In some petition archives, **collective** petitions, which have *only* subscribers (and might have thousands of them) are the most familiar type of petition; this is rather less common in QS records, and it's quite common for QS collective petitions not to have any named subscribers either.
+[Other names which may appear on petitions are not considered here: signatures of clerks, lawyers, judges or other officials; and mentions of individulas, especially the subjects of petitioners' complaints, in the body of a petition.]
+
+Using these definitions, I have some information about individuals for 2229 named petitioners and 3531 subscribers (for Herts, I only have subscriber counts). Potentially meaningful information which is available for at least some petitioners and subscribers:
+
+- nearly all have gender information, on the basis of first names (>99% of petitioners and ~95% of subscribers)
+- for transcribed petitions, signature types (name, initials, marks) of signed names
+- occupation/social status and locations for some names (but both of these would need more work to make them usable than is possible here)
+
+It should be noted that the Derbyshire collection is only a partial set of surviving petitions in the Derbyshire QS records which are, moreover, [a bit different from the other counties' archives](https://www.british-history.ac.uk/petitions/derbyshire/introduction#h3-0002) (in that they did not survive in the usual sessional organisation). Many petitions were excluded because they couldn't be dated and there were very uneven clusters among those that could). I've kept them in the analysis for now, but they're often very anomalous and I'm increasingly doubtful that anything can be read into the differences.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r message=FALSE}
+
+source("_data.R")
+
+# viz, ggplot extensions etc
+library(ggthemes)
+theme_set(theme_minimal()) # set preferred ggplot theme 
+
+library(vcd)
+
+### devtools::install_github("hrbrmstr/waffle")
+library(waffle)
+library(hrbrthemes)
+
+library(ggridges)
+##https://github.com/wilkox/treemapify
+library(treemapify)
+
+library(patchwork)
+
+library(RColorBrewer)
+# nb.cols <- 18
+# mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+# scale_fill_manual(values = mycolors) +
+
+
+# this csv has cleaned up? first/last for otehr counties
+qs_petrs_names_csv <-
+  read_csv("~/r_projects/petitions/case_study/cs_data/bho_quarter_sessions_exches_metadata_names.csv", guess_max = 5000) %>%
+  select(reference, doc_no, county, ll_img, name, first, last, name2, rowid)
+
+ches_qs_petrs_names_rds <-
+  read_rds("~/r_projects/petitions/case_study/cs_data/cheshire_qjf_names_petr_sub_metadata_20210711.Rds") %>%
+  select(name_id, reference, doc_no, first, last, name) %>%
+  mutate(county="Ches")
+```
+
+
+```{r}
+## petitioners
+
+# drop any petition level stuff for now. you can rejoin for date, topic etc when you need to
+# drop subscribers for this... 
+# updated non-bho has both doc_no and ll_img
+# need to add county col to ches 
+# what happened to first ? i went to the trouble of cleaning stuff up, sheesh
+qs_ches_petitioners <-
+  dbGetQuery(csdb_conn, "select * from bho_qs_ches_petitioners") %>%
+  filter(name_type !="not_named" & petr_or_sub=="petr") %>% 
+  mutate(county="Ches") %>%
+  inner_join(ches_qs_petrs_names_rds %>% select(reference, name, first, last), by=c("reference", "name"))
+
+qs_ex_ches_petitioners <-
+  dbGetQuery(csdb_conn, "select * from bho_qs_petitioners" ) %>%
+  filter(name_type !="not_named" & petr_or_sub=="petr") %>%
+  left_join(qs_petrs_names_csv %>% select(rowid, reference, first, last), by=c("rowid", "reference")) %>%
+  mutate(first = case_when(
+    is.na(first) ~ word(name),
+    TRUE ~ first
+  )) %>%
+  # how to get the second word!
+  mutate(last = case_when(
+    !is.na(last) ~ last,
+    TRUE ~ word(str_trim(str_remove(name, first)))
+  ))
+
+# what about qs_add_petitioners? is it consistent enough to use? get it anyway i guess
+# don't have signature info - only have gender basically
+# qs_add_petitioners <-
+#   dbGetQuery(csdb_conn, "select * from qs_add_petitioners_metadata") %>%
+#   filter(name_type !="not_named" & name_type !="unknown" & county=="Herts") %>%
+#   select(-petr_name) %>%
+#   inner_join(qs_level2_petitions %>% select(county, reference, doc_no), by=c("county", "reference"))
+
+
+## HoL petitioners and petitions
+# arrghh i forgot there's sampling here too for the big years (mainly affects 1648). hmmm
+# i have the full catalogue? could try to compare and impute somehow? but leave out for now. only have gender anyway
+# could def do some stuff like petitioners per petition
+
+# hol_petitioners <-
+#   dbGetQuery(csdb_conn, "select * from bho_hol_petitioners") %>%
+#   filter(name_type !="not_named" & petr_or_sub=="petr")
+
+
+qs_herts_petitioners <-
+  dbGetQuery(csdb_conn, "select * from qs_se_petitioners") %>%
+  filter(county=="Herts") %>%
+  filter(name_type !="not_named") %>%
+  mutate(name=petr_name) %>%
+  mutate(petr_name = str_remove(name, "^(Sir|Mr) +")) %>%
+  mutate(first = word(petr_name)) %>%
+  mutate(last = word(str_trim(str_remove(petr_name, first))))
+
+## qs_petitions_combined in _data.r includes herts.
+## adding herts petrs but don't forget this doesn't have subscribers - you only have counts for them, in petitions - and doesn't have signatures data either
+qs_petitioners_combined <-
+bind_rows( #1807
+  qs_ches_petitioners %>% rename(name_id=rowid) , 
+  qs_ex_ches_petitioners %>% rename(name_id=rowid) ,
+  qs_herts_petitioners %>% mutate(petr_or_sub="petr")
+  #qs_add_petitioners %>% mutate(petr_or_sub="petr") %>% rename(name_id=rowid)
+) %>%
+  # single-column unique id for each petition to match petitions, make joins easier
+  # but will this work for herts? seems to. nb end _NA but they are unique.
+  mutate(petition_id = paste(county, reference, doc_no, sep="_")) %>%
+  inner_join(qs_petitions_combined %>% select(petition_id, topic, decade, year, year_strict, year_parse, transcribed, petition_type, petition_type_s, subscribers, named_petrs), by=c("petition_id")) %>%
+  #   mutate(petition_type_s = case_when(
+  #   petition_type=="single" & named_petrs==1 ~ "single",
+  #   str_detect(petition_type, "collective") ~ "collective",
+  #   str_detect(petition_type, "multiple") ~ "group"
+  # )) %>%
+  # simplified signature type, diff not transcribed (NA) and not signed [none]
+    mutate(signature_type = case_when(
+      county=="Herts" ~ NA_character_,
+      county=="Ches" & transcribed=="n" ~ NA_character_,
+#    !is.na(petitioner_signed) & is.na(sig_type) ~ "[n/k]",
+    sig_type %in% c("in", "m") ~ "mark",
+    sig_type=="sig" ~ "sign",
+    sig_type=="ss" ~ "scribe",
+    is.na(sig_type) ~ "[none]"
+  )) %>%
+  # why have i got NA petitioner signed ffs. looks like it must be in the database - but how did it happen?
+  # fix it here anyway...
+  mutate(petitioner_signed = case_when(
+    is.na(signature_type) ~ NA_character_,
+    signature_type=="[none]" ~ "no",
+    TRUE ~ "yes"
+  )) %>%
+  # put first and last back in! hmmm. last is fine for Ches, but other counties less effective.
+  #mutate(first = word(name), last = str_trim(str_remove(name, first))) %>%
+  select(-ll_img) # why?
+
+# ches not transcribed 4 na petr signed all = behalf. so probably not signed.
+# i don't think i have sig type for untranscribed ches petitioners so these should be excluded from signature_type with herts.
+# why is sig_type missing for so many petitioners who signed? can i assume autographs?
+# qs_petitioners_combined %>%  filter(transcribed=="y",  !is.na(sig_type)) %>% count(county) #%>% count(petitioner_signed)
+
+
+# excluding herts. what about untranscribed cheshire?
+qs_ches_subscribers <-
+  dbGetQuery(csdb_conn, "select * from bho_qs_ches_petitioners") %>%
+  # errm why excluding collective ?? obvs want to exclude from petrs, but keep in subs surely
+  #filter(name_type !="not_named") %>%
+  filter(petr_or_sub=="sub") %>%
+  mutate(county="Ches")
+
+qs_ex_ches_subscribers <-
+  dbGetQuery(csdb_conn, "select * from bho_qs_petitioners" ) %>%
+  #filter(name_type !="not_named") %>% 
+  filter(petr_or_sub=="sub")
+
+# for herts have count of subscribers in petitions, but not individual info afaicr
+qs_subscribers_combined <-
+bind_rows(
+  qs_ches_subscribers %>% rename(name_id=rowid), 
+  qs_ex_ches_subscribers %>% rename(name_id=rowid)
+) %>%
+  # single-column unique id for each petition to match petitions, make joins easier
+  mutate(petition_id = paste(county, reference, doc_no, sep="_")) %>%
+  # including subscribers here to see how well it matches subscriber counts lol
+  inner_join(qs_petitions_combined %>% select(petition_id, topic, decade, year, year_strict, year_parse, transcribed, petition_type, petition_type_s, named_petrs, subscribers), by=c("petition_id")) %>%
+  # mutate(level = case_when(
+  #   transcribed=="y" ~ 1,
+  #   county=="Ches" ~ 2
+  # ))  %>%
+  #   mutate(petition_type_s = case_when(
+  #   petition_type=="single" & named_petrs==1 ~ "single",
+  #   str_detect(petition_type, "collective") ~ "collective",
+  #   str_detect(petition_type, "multiple") ~ "group"
+  # ))  %>%
+    mutate(signature_type = case_when(
+    #level==2 & is.na(sig_type) ~ "[n/k]",
+     county=="Ches" & transcribed=="n" ~ NA_character_,
+    sig_type %in% c("in", "m", "pt_m") ~ "mark",
+    sig_type %in% c("sig", "pt_sig") ~ "sign",
+    sig_type %in% c("ss", "pt_ss") ~ "scribe",
+    is.na(sig_type) ~ "[none]"
+  )) %>%
+  select(-ll_img)
+# ps_sig_type all na for subs
+# only 5 level 2 subs with sig type
+```
+
+
+```{r}
+# ???
+# now it's working no problem... 
+percent_one_petitioner_grp <- function(grp){
+  qs_petitions_combined %>%
+  count({{grp}}, named_petrs, petition_type) %>%
+  group_by({{grp}}) %>%
+  mutate(p = n/sum(n), s=sum(n)) %>%
+  ungroup() %>%
+    # exclude any collective with 1 named_petr who's ob
+  filter(named_petrs==1, petition_type=="single") %>%
+  ggplot(aes(fct_reorder({{grp}}, p), p)) +
+  geom_point(aes(size=s), shape="square") +
+  geom_col(width=0.03) +
+  coord_flip() +
+  scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+  labs(y="% of petitions with one named petitioner", size="petitions")
+}
+
+
+
+qs_pet_types_mosaic <- function(grp){
+  
+qs_petitions_combined %>%
+  count({{grp}}, petition_type_s) %>%
+  group_by({{grp}}) %>%
+  mutate(p = n/sum(n), s=sum(n)) %>%
+  ungroup() %>%
+  mutate(grp=factor({{grp}})) %>%
+  # why does this work but continuing to use {{grp}} doesn't...
+  mutate(#grp = fct_reorder(grp, -s),
+         petition_type_s = fct_relevel(petition_type_s, "single", "collective", "group")) %>%
+  ggplot(aes(x=grp, y = p, width = s, fill = petition_type_s)) +
+  geom_col(position = "fill", colour="white") +
+  scale_fill_ptol() +
+  scale_y_continuous(labels = percent_format()) +
+  facet_grid(~grp, scales = "free_x", space = "free_x")  +
+  theme(panel.spacing = unit(0, "lines"), strip.text.x = element_blank() ) +
+  labs(fill="type", y="% of petitions")
+}
+```
+
+
+
+## Making petitioners count
+
+```{r}
+# number of petrs doesn't match for 1 petition hmmm. but ok near enough
+# qs_petitions_combined %>%
+#   select(petition_id, named_petrs) %>%
+#   inner_join(qs_petitioners_combined %>% count(petition_id), by="petition_id") %>%
+#   filter(named_petrs !=n)
+```
+
+```{r}
+# why have numbers and % changed since i first wrote this... 
+# maybe i did calcs based on named_petrs ? aha! i think behalfs are in named_petrs... oops
+# i had 1513 solo 71%; 382 collective; 246? group
+# nb 88 collective petitions include on behalf (4.1% of total) and 32 group = on behalf (1.5%)
+# qs_petitions_combined %>% 
+#   count(petition_type_s) %>%
+#   mutate(p = n/sum(n)*100)
+```
+
+By far most petitions were initiated by a single person (1430 petitions, about 67%). For the other 33%, the most noticeable feature is that petitions by groups of named petitioners are less common than those from collectives (with or without named subscribers): there were 473 collective petitions (including 88 on behalf of a named person(s)), compared to 238 petitions with multiple named petitioners (including 32 on behalf of someone). 
+
+Moreover, the vast majority of named group petitions are by very small groups. 168 have just two petitioners, only 23 have more than five and just three petitions have more than ten. It seems likely to me that group petitions are often the work of close relatives or working colleagues. At least 70 group petitions include people who are married couples, stated to be relatives (especially siblings) or share surnames. There are further group petitions from constables, other local officials or business partners, directly concerned with shared responsibilities or work.
+
+
+```{r qs_petrs_histogram_petrs_per_petition, fig.alt='histogram showing numbers of named petitioners per petition in the Power of Petitioning Quarter Sessions collections. The largest group of petitioners (about 1500) has only one petitioner.'}
+#  qs_petrs_... , fig.alt='type of chart... of ... in the Power of Petitioning Quarter Sessions collections, note any interesting points about presentation. summarise key findings'
+qs_petitions_combined %>% #count(named_petrs) 0=382
+  #filter(county !="Herts")
+  #filter(named_petrs>0) %>% 
+  ggplot(aes(named_petrs)) +
+  geom_histogram(binwidth = 1) +
+  labs(x="number of petitioners", title="Named petitioners per QS petition", caption = "excludes subscribers; 0=collective petition")
+```
+
+```{r}
+# qs_petitioners_combined %>%
+#   group_by(petition_id) %>%
+#   mutate(pet_n=n(), dist_last = n_distinct(last)) %>%
+#   ungroup() %>%
+#   add_count(last, petition_id, name="last_n") %>%
+#   #add_count(petition_id, name="pet_n") %>% 
+#   relocate(reference, pet_n, dist_last, last_n, last, first, name) %>%
+#   arrange(county, petition_id, last, first) %>%
+#   semi_join(qs_petitions_combined %>%
+#               filter(str_detect(petition_type, "multiple")), by="petition_id") %>%
+#   View()
+```
+
+```{r}
+# qs_petitioners_combined %>%
+#   count(last, petition_id) %>%
+#   filter(n>1) %>%
+#   inner_join(qs_petitions_combined %>%
+#               filter(str_detect(petition_type, "multiple")), by="petition_id") %>%
+#   relocate(petitioner) %>%
+#   # only 21 with "his wife". 36 without. so add 37 below to 36 ? 73. or add 16 to 57.
+#   filter(!str_detect(petitioner, "his wife"))
+
+# 37
+# qs_petitions_combined %>%
+#   filter(str_detect(petitioner, "his wife"))
+```
+
+
+
+```{r}
+# qs_petitions_combined %>%
+#   select(petition_type, petition_type_s, subscribers) %>%
+#   filter(str_detect(petition_type, "collective")) %>%
+#   count(subscribers>0) %>%
+#   mutate(p = n/sum(n))
+```
+
+
+```{r}
+# qs_petitions_combined %>%
+#   #filter(named_petrs>0) %>%
+#   select(named_petrs, subscribers) %>%
+#   mutate(all_names = named_petrs+subscribers) %>% #count(all_names)
+#   ggplot(aes(all_names)) +
+#   geom_histogram(binwidth = 1) +
+#   labs(x="number of names", title="Named petitioners + subscribers per petition")
+```
+
+```{r}
+# 99 subs is an estimate... no it isn't? there are some names lost to damage but it is the number of transcribed names.
+# qs_petitions_combined %>%
+#   filter(subscribers>80) %>%
+#   inner_join(qs_petitioners_combined, by="reference")
+```
+
+This shows subscribers only, for petitions that have them, and excluding a tiny handful of petitioners with more than 50 subscribers. Once again, 1 is the most frequent number of subscribers, but there is a much longer tail. Subscribers average 9.75 per petition, cf. 1.27 petitioners. However, more than a third of collective petitions had no signatures at all (168); obtaining signatures was clearly not essential to support collective petitioning
+
+
+```{r}
+# subs (>0) mean 9.75, median 7
+# petrs (>0) 1.267197 /	1	
+# qs_petitions_combined %>%
+#   filter(named_petrs>0) %>% summarise(mn = mean(named_petrs), md=median(named_petrs))
+```
+
+
+```{r}
+# hmm !
+# qs_petitions_combined %>%
+#   select(all_id, county, named_petrs, subscribers, petition_type, petition_type_s) %>%
+#   pivot_longer(c(named_petrs, subscribers), names_to = "petr_type", values_to="individuals") %>%
+#   filter(individuals < 25) %>%
+#   ggplot(aes(petr_type, individuals)) +
+#   geom_violin()
+
+```
+
+
+```{r qs_petrs_histogram_subscribers_per_petition, fig.alt='histogram of subscribers to petitions in the Power of Petitioning Quarter Sessions collections; as with petitioners the largest single group have just one subscriber, but it is a much wider distribution with significant numbers of petitions having up to 25 subscribers.'}
+qs_petitions_combined %>%
+  select(county, named_petrs, subscribers) %>%
+  filter(subscribers>0) %>% 
+  #filter(subscribers<60) %>% 
+  #summarise(mn=mean(subscribers), md=median(subscribers))
+  #mutate(all_names = named_petrs+subscribers) %>% #count(all_names)
+  ggplot(aes(subscribers)) +
+  geom_histogram(binwidth = 1) +
+  labs(x="number of subscribers", title="Subscribers per petition")
+```
+
+```{r}
+#compare supporters and collectives?
+# but what is this doing...?
+# qs_petitions_combined %>%
+#   filter(subscribers>0) %>%
+#   select(named_petrs, subscribers, petition_type, petition_type_s) %>%
+#   #count(petition_type_s, subscribers) %>%
+#   ggplot(aes(subscribers)) +
+#   geom_histogram(binwidth = 1) +
+#   facet_wrap(~petition_type_s, ncol = 1)
+```
+
+
+```{r}
+# TIL percentages of groups: count(a, b) %>% group_by(a) %>% mutate(pc = n/sum(n))
+# qs_petitions_combined %>%
+#   select(petition_id, named_petrs, county, decade, topic, gender) %>%
+#   count(county, named_petrs) %>%
+#   group_by(county) %>%
+#   mutate(p = n/sum(n)) %>%
+#   filter(named_petrs==1) 
+```
+
+
+```{r}
+# 70.67% single
+# qs_petitions_combined %>%
+#   count(named_petrs, sort = T) %>%
+#   mutate(p = n/sum(n))
+```
+
+### counties
+
+The proportions of solo / collective / group petitions can vary geographically.
+
+
+```{r include=FALSE}
+# what about petitions that are actually 1 petr + on behalf? treat as multiple
+# only 32 m.o.b. petitions so it's not exactly a big deal; 31 of them are 2 named
+
+# anomalous =collective/>0 petrs are all "name and the collective". 
+# only 3 of them...  histogram will be treating them correctly
+# 3rd has 3 named and 0 subscribers so make it multiple not collective
+# first two have 1 named + several subs. hmm! i think single not collective.
+
+# how to treat collective on behalf for numbers?
+# want to compare subscribers for collective / named. 
+# but how do collective on behalf fit into that?
+# 
+# collective on behalf: 88. 1 named=81, 2 named=5, only 2 have more than 2. are any of them named *petr* rather than ob? nope. all ob afaict.
+```
+
+```{r include=FALSE}
+# TIL: mosaic just using ggplot 
+# https://stackoverflow.com/questions/19233365/how-to-create-a-marimekko-mosaic-plot-in-ggplot2
+# My solution was to use geom_bar together with the scales="free_x", space="free_x" option in facet_grid to accommodate different bar widths:
+# using diamonds dataset for illustration
+# diamonds %>%
+#   group_by(cut, clarity) %>%
+#   summarise(count = n(), .groups = "drop_last") %>%
+#   mutate(cut.count = sum(count),
+#          prop = count/sum(count)) %>%
+#   ungroup() %>%
+#   ggplot(aes(x = cut, y = prop, width = cut.count, fill = clarity)) +
+#   geom_bar(stat = "identity", position = "fill", colour = "black") +
+#   # geom_text(aes(label = scales::percent(prop)), position = position_stack(vjust = 0.5)) + # if labels are desired
+#   facet_grid(~cut, scales = "free_x", space = "free_x") +
+#   scale_fill_brewer(palette = "RdYlGn") +
+#   # theme(panel.spacing.x = unit(0, "npc")) + # if no spacing preferred between bars
+#   theme_void() 
+```
+
+
+The percentage of group petitions appears to be relatively consistent across the counties (except for Derbyshire); the main variation here is between single and collective, hinting at regional variations in petitioning cultures.
+
+```{r qs_petrs_ggmosaic_petitioner_types_county, fig.alt='Mosaic chart of solo, group and collective petitions in the Power of Petitioning Quarter Sessions collections, broken down by county. Most petitions are from a single petitioner, but percentages vary considerably, from about 25% solo in Westminster and Cheshire to 50% solo in Hertfordshire. There is least variation in the percentage from named groups.'}
+qs_pet_types_mosaic(county) +
+  labs(title="Solo and collective petitioning, by county", x="county", fill="petitioner\ntype")
+```
+
+
+
+
+
+```{r}
+# qs_petitions_combined %>%
+#   select(named_petrs, subscribers, petition_type_s, decade) %>%
+#   filter(!is.na(decade)) %>%
+#   count(decade, petition_type_s) %>%
+#   group_by(decade) %>%
+#   mutate(p = n/sum(n), s=sum(n)) %>%
+#   ungroup() %>%
+#   mutate(decade=factor(decade), 
+#          petition_type_s = fct_relevel(petition_type_s, "single", "collective", "group")) %>%
+#   ggplot(aes(x = decade, y = p, width = s, fill = petition_type_s)) +
+#   geom_col(position = "fill", colour="white") +
+#   facet_grid(~decade, scales = "free_x", space = "free_x") +
+#   scale_fill_ptol() +
+#   scale_y_continuous(labels = percent_format()) +
+#   scale_x_discrete(guide = guide_axis(angle=45)) +
+#   theme(panel.spacing = unit(0, "lines") , strip.text.x = element_blank(), legend.position = "bottom") +  
+#   labs(fill="type", title="Petition types, by decade", y="% of petitions")
+
+```
+
+
+```{r}
+# why doesn't this order things large>small like the examples? annoying
+# qs_petitions_combined %>%
+#   select(named_petrs, subscribers, petition_type, county) %>%
+#   mutate(pets_cat = case_when(
+#     petition_type=="single" & named_petrs==1 ~ "s",
+#     str_detect(petition_type, "collective") ~ "c",
+#     str_detect(petition_type, "multiple") ~ "m"
+#   )) %>% 
+#   add_count(pets_cat) %>%
+#   ggplot() +
+#   ggmosaic::geom_mosaic(aes(x=ggmosaic::product(pets_cat, county), fill=pets_cat )
+#                         ) +
+#   scale_fill_ptol() 
+```
+
+
+```{r}
+#try this a bit differently... nah not really
+# qs_petitions_combined %>%
+#   count(topic, named_petrs, petition_type) %>%
+#   group_by(topic) %>%
+#   mutate(p = n/sum(n), s=sum(n)) %>%
+#   ungroup() %>%
+#   filter(named_petrs==1, petition_type=="single") %>%
+#   ggplot(aes(s, p, label=topic)) +
+#   geom_text(show.legend = F, aes(colour=topic)) +
+#   #geom_label(show.legend = F, colour="white", aes(fill=topic)) +
+#   #geom_col(width=0.03) +
+#   #coord_flip() +
+#   scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+#   #scale_colour_tableau() +
+#   labs(y="% of petitions with one named petitioner", x="number of petitions")
+```
+
+
+```{r}
+# TIL ggplot interesting that you can have multiple labs(). you can even replace previously specified labels. might be handy for overriding function defaults.
+# percent_one_petitioner_grp(county) +
+#   labs(x="county", title="Solo petitioning, by county")
+```
+
+
+
+### topics
+
+
+```{r}
+##Certain petition topics stand out as particularly collective, eg rates or dissenting worship.
+# qs_petitions_combined %>%
+#   ggplot(aes(named_petrs)) +
+#   geom_histogram(binwidth = 1) +
+#   facet_wrap(~topic, scales = "free_y")
+```
+
+Because of the larger number of topics, it's more effective to focus on the proportion of petitions by solo petitioners rather than the full breakdown. (This time, the size of squares is used to indicate the number of petitions in the group.) 
+
+Petitions complaining about local rates and taxes clearly tend to be group/collective affairs, or at least presented as such (communities organising together to complain about unfair rate assessments compared to other towns or villages more often than individual complaints of unfairness compared to neighbours). Dissenters' petitions, though a small category, are specifically applications to license places of worship and brought by local communities rather than single individuals. On the other hand, more predominantly solo efforts include petitions about military relief, poor relief and child support. 
+
+```{r}
+# overall % solo=nearly 67.
+# qs_petitions_combined %>%
+#   count(petition_type_s) %>%
+#   mutate(p = n/sum(n)*100)
+```
+
+
+```{r}
+# is this putting petrs and subrs together or is it just petrs?
+# qs_pet_types_mosaic(topic) +
+#   scale_x_discrete(guide = guide_axis(angle=45)) +
+#   labs(x="topic", title="Petition types, by petition topic")
+```
+
+
+```{r qs_petrs_lollipop_solo_petitions_percent , fig.alt='lollipop chart of the percentage of petitions in the Power of Petitioning Quarter Sessions collections that were by a single petitioner, break down by petition topic. The lowest percentages include complaints about rates/taxes and alehouses, and the highest include poor-relief related petitions and those from debtors.'}
+
+percent_one_petitioner_grp(topic) +
+  labs(x=NULL, title="Solo petitioner petitions, by topic")
+```
+
+### change over time
+
+
+```{r}
+##What this indicates is that the solo-collective-group proportions were relatively consistent through the first half of the 17th century, when petition numbers were largest, and then began to become less stable as numbers declined, which may well be the result of small numbers rather than anything more meaningful.
+# qs_pet_types_mosaic(decade)+
+#   scale_x_discrete(guide = guide_axis(angle=45)) +
+#   labs(x="decade", title="Petitioner types, by decade")
+```
+
+There may be a long-term shift towards solo petitioning, though it's far from conclusive. For much of the 17th century the percentage of solo petitioners is relatively consistent; fluctuations become more noticeable after petition numbers fall from the late 17th century onwards. However, the overall 18th-century solo average (73%) *is* higher than that for the 17th century (66%), and the late-16th-century solo average is even lower at 52%.
+
+```{r}
+  # qs_petitions_combined %>%
+  # filter(!is.na(decade)) %>%
+  # mutate(pd = case_when(
+  #   decade<1600 ~ "16",
+  #   decade<1700 ~ "17",
+  #   TRUE ~ "18"
+  # )) %>%
+  # count(pd, named_petrs, petition_type_s) %>%
+  # group_by(pd) %>%
+  # mutate(p = n/sum(n), s=sum(n)) %>%
+  # filter(named_petrs==1, petition_type_s=="single")
+```
+
+
+```{r  qs_petrs_scatter_trend_solo_petitions_decade, fig.alt='scatter plot with trend line of percentage of petitions with a single petitioner in the Power of Petitioning Quarter Sessions collections, by decade between late 16th and late 18th centuries. There is probably a slight overall increase over the period, but it fluctuates a good deal.'}
+
+  qs_petitions_combined %>%
+  filter(!is.na(decade)) %>%
+  count(decade, named_petrs, petition_type_s) %>%
+  group_by(decade) %>%
+  mutate(p = n/sum(n), s=sum(n)) %>%
+  filter(named_petrs==1, petition_type_s=="single") %>%
+  ggplot(aes(decade, p)) +
+  geom_point(aes(size=s), shape="square") +
+  geom_smooth(formula = y~x, method="loess") +
+  #coord_flip() +
+  scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+  labs(y="% of petitions with one named petitioner", size="petitions")
+```
+
+
+
+
+```{r}
+##on behalfs? #### 
+# are there enough to be worth doign anything quant with. only 130. but there are clear diffs per county...
+# qs_petitioners_combined %>%
+#   count(county, name_type)
+```
+
+
+
+## Gender
+
+```{r}
+#qs_subscribers_combined %>% count(gender) %>% mutate(p=n/sum(n)*100)
+#qs_petitioners_combined %>% count(gender) %>% mutate(p=n/sum(n)*100)
+```
+
+The majority of petitioners are men; only about 23% of named petitioners are female. 
+
+```{r qs_petrs_waffle_gender_petitioners, fig.alt='waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections. 1714 petitioners are male, 502 female.'}
+
+qs_petitioners_combined %>% 
+  # mutate(petr_sub="petitioners") %>%
+  # bind_rows(qs_subscribers_combined %>% mutate(petr_sub="subscribers")) %>%
+  filter(gender %in% c("male", "female")) %>%
+  count(gender)%>%
+  ggplot(aes(fill=gender, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, #make_proportional = TRUE, 
+              n_rows = 50)+
+  coord_equal() +
+    #facet_wrap(~petr_sub, nrow=1) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_manual(values=c("#fc8d59", "#810f7c"), guide = guide_legend(reverse = TRUE)) +
+ # theme(legend.position = "bottom") +
+  labs(fill="gender", title="Gender of QS petitioners", caption="1 square = 1 petitioner")
+
+```
+
+But the gender disparity is *much* greater for subscribers, of whom only about **2%** are women.
+
+```{r qs_petrs_waffle_gender_subscribers, fig.alt='waffle chart of petition subscribers gender in the Power of Petitioning Quarter Sessions collections: 3313 male, 71 female.'}
+qs_subscribers_combined %>% 
+  filter(gender %in% c("male", "female")) %>%
+  count(gender)%>% #mutate(p=n/sum(n))
+  ggplot(aes(fill=gender, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, #make_proportional = TRUE, 
+              n_rows = 60)+
+  coord_equal() +
+  #  facet_wrap(~petr_sub, nrow=1) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_manual(values=c("#fc8d59", "#810f7c"), guide = guide_legend(reverse = TRUE)) +
+ # theme(legend.position = "bottom") +
+  labs(fill="gender", title="Gender of QS subscribers", caption="1 square = 1 subscriber")
+
+```
+
+Women are also more likely than men to be solo petitioners. 
+
+```{r warning=FALSE}
+# qs_petitions_combined %>%
+#   filter(gender %in% c("female", "male", "mixed"), petition_type_s!="collective") %>%
+#   count(gender, petition_type_s) %>%
+#   group_by(gender) %>%
+#   mutate(p = n/sum(n), s=sum(n)) %>%
+#   mutate(#grp = fct_reorder(grp, -s),
+#          petition_type_s = fct_relevel(petition_type_s, "single", "group")) %>%
+#   ggplot(aes(x=gender, y = p, width = s, fill = petition_type_s)) +
+#   geom_col(position = "fill", colour="white") +
+#   scale_fill_manual(values=c("#fc8d59", "#810f7c"), guide = guide_legend(reverse = TRUE)) +
+#   #scale_fill_tableau() +
+#   scale_y_continuous(labels = percent_format()) +
+#   facet_grid(~gender, scales = "free_x", space = "free_x")  +
+#   theme(panel.spacing = unit(0, "lines"), strip.text.x = element_blank() ) +
+#   labs(fill="type", y="% of petitions")
+```
+
+
+```{r qs_petrs_waffle_gender_petitioners_pet_type, fig.alt='waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections, comparing single vs group petitions. About 77% of female petitioners are solo, and 65% of male petitioners.'}
+# TIL geom_waffle: for fill legend correct ordering. in scale_fill* use guide = guide_legend(reverse = TRUE)
+qs_petitioners_combined %>%
+  filter(gender %in% c("female", "male", "mixed"), petition_type_s!="collective") %>%
+  count(petition_type_s, gender)%>%
+  ggplot(aes(fill=petition_type_s, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, make_proportional = TRUE, 
+              n_rows = 10)+
+  coord_equal() +
+  facet_wrap(~gender, nrow=1) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_tableau(guide = guide_legend(reverse = TRUE)) +
+#  scale_fill_manual(values=c("#fc8d59", "#810f7c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill="gender", title="Gender of QS petitioners, by petition type", caption="1 square = 1% of petitioners")
+
+```
+
+
+Moreover, there are *no* all-female petitioner groups larger than two people (women also tend to be very much in the minority in larger mixed groups). So it's clear that men were far more involved with petitioning as an organised collective or group activity. The absence of women as subscribers may imply that supporters were most often recruited on a household basis, with men signing as heads of households.
+
+```{r qs_petrs_histogram_gender_petitioners_per_petition, fig.alt='histograms of petitioners per petition in the Power of Petitioning Quarter Sessions collections, comparing all female, all male and mixed gender petitions.'}
+
+qs_petitions_combined %>% 
+  filter(gender %in% c("female", "male", "mixed"), petition_type!="collective") %>%
+  ggplot(aes(named_petrs)) +
+  geom_histogram(binwidth = 1) +
+  labs(x="number of (named) petitioners", title="Histogram of petitioners per petition, by gender") +
+  facet_wrap(~gender, scales="free_y")
+```
+
+```{r}
+# qs_petitioners_combined %>%
+#   select(gender, petition_type_s, name_type, petr_or_sub, petition_id) %>%
+#   inner_join(qs_petitions_combined %>% filter(gender=="mixed") %>% select(petition_id, pet_gender= gender), by="petition_id") %>%
+#   filter(petr_or_sub=="petr", gender %in% c("male", "female")) %>%
+#   count(petition_id, gender) %>%
+#   group_by(petition_id) %>%
+#   mutate(p = n/sum(n), s=sum(n)) %>%
+#   ungroup() %>%
+#   #filter(gender=="female") %>%
+#   arrange(s) %>%
+#   ggplot(aes(s, n, colour=gender)) +
+#   geom_point() 
+```
+
+
+```{r}
+#Women do not petition in groups without men.?
+# qs_petitions_combined %>%
+#   filter(gender !="na") %>%
+#   ggplot(aes(named_petrs)) +
+#   geom_histogram(binwidth = 1) +
+#   facet_wrap(~gender, scales = "free_y")
+```
+
+
+```{r}
+# thread https://twitter.com/sharon_howard/status/1222197505380749312  [2020/01/28]
+# Who likes waffle charts?
+
+# TIL geom_waffle: for fill legend correct ordering. in scale_fill* use guide = guide_legend(reverse = TRUE)
+qs_petitioners_combined %>%
+  filter(gender %in% c("male", "female")) %>%
+  count(county, gender)%>%
+  ggplot(aes(fill=gender, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, make_proportional = TRUE, n_rows = 5)+
+  coord_equal() +
+  facet_wrap(~county, nrow=1) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_manual(values=c("#fc8d59", "#810f7c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill="gender", title="Gender of QS petitioners, by county", caption="1 square = 1% of petitioners")
+
+# also
+# https://twitter.com/sharon_howard/status/1222433500244205568
+# https://twitter.com/sharon_howard/status/1222202003704684547
+
+```
+
+
+It's not very surprising that female participation also varies with petition topic (and this at least to some extent correlates with topics that were more or less likely to be solo vs group/collective); in particular very few women are involved in petitions about rates, while approaching half of petitioners for poor relief.
+
+```{r qs_petrs_waffle_gender_petition_topic, fig.alt='waffle charts of petitioner gender in the Power of Petitioning Quarter Sessions collections, breakdown by petition topics.'}
+qs_petitioners_combined %>%
+  filter(gender %in% c("male", "female"), topic!="other") %>%
+  count(topic, gender)%>%
+  ggplot(aes(fill=gender, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, make_proportional = TRUE, n_rows = 10)+
+  coord_equal() +
+  facet_wrap(~topic, nrow=2) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_manual(values=c("#fc8d59", "#810f7c"), guide = guide_legend(reverse = TRUE)) +
+  theme(legend.position = "bottom") +
+  labs(fill="gender", title="Gender of QS petitioners, by petition topic") #, caption="1 square = 1% of petitioners")
+
+```
+
+
+
+## Signing petitions
+
+There was no requirement to sign a petition and the majority of petitioners did not sign their petitions at all. Therefore, this is *not* an attempt to analyse signatures for evidence of literacy. But why did some petitioners sign their names if the majority didn't bother? What, if anything, is the social/cultural/legal significance of a signature in a petition? It might not be the same as in witness examinations or other legal documents (for which signatures usually *were* required). So I'm curious as to whether there are any patterns of interest.
+
+I don't have any signatures data for Herts and I only have partial data for the untranscribed Cheshire petitions, so they're excluded from this section. Overall, there's some kind of signature data for 24% of petitioners in the transcribed collections. 
+
+In transcriptions, signatures were also marked up for "type" of signature:
+
+- mark
+- initial(s)
+- autograph signature
+- name written in the same hand as the main petition text
+
+The last of these can be difficult to interpret. In most cases, it's *not* because the petition was written by the petitioner; inspection of the Cheshire images indicates that the only instances of this were less formal petitionary letters. In some cases - certainly for subscribers - it looks possible that the petition is a copy rather than the original document. For petitioners it's hard to be sure whether it's a copy of an original autograph or a scribal decision to write out the name as a kind of pseudo-signature and so I'll only include them in breakdowns by signature type.
+
+Initials are very rare (<10, only 1 of which is for a petitioner) and so are counted with marks for this analysis. However, this in itself seems quite noteworthy, as I might expect them to be more common based on my recollection of other types of document in early modern court archives such as witness examinations. (Though I wouldn't guarantee that my memory is reliable, and I'd need some data to verify this.)
+
+Moreover, as we'll see, even when combined marks and initials are not very common - considerably less common, I suspect, than in witness examinations even though I might expect petitioners to be of fairly similar social status to witnesses.
+
+
+```{r}
+## are petitioners more likely to sign if there are subscribers as well? very slightly. but difference is marginal
+  # qs_petitioners_combined %>%
+  # filter(!is.na(signature_type), signature_type!="scribe") %>%
+  # select(reference, name_type, petition_type_s, petitioner_signed, signature_type, subscribers, named_petrs) %>%
+  # count(signature_type, subscribers>0) %>%
+  # group_by(signature_type) %>%
+  # mutate(p = n/sum(n)*100) %>%
+  # ungroup()
+```
+
+
+
+```{r qs_petrs_waffle_petitioners_signatures, fig.alt='waffle chart of petitioner signatures in the Power of Petitioning Quarter Sessions collections. The majority (1125) did not sign their petitions and very few who did sign used a mark (31).'}
+
+qs_petitioners_combined %>%
+  filter(!is.na(signature_type)) %>%
+  count(signature_type) %>%
+  ggplot(aes(fill=signature_type, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, #make_proportional = TRUE, 
+              n_rows = 40) +
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  #scale_fill_tableau(guide = guide_legend(reverse = TRUE)) +
+  scale_fill_pander(guide = guide_legend(reverse = TRUE)) +
+  #theme(legend.position = "bottom",strip.text = element_text(angle = 45)) +
+  labs(fill="type", caption="1 square = 1 petitioner", title="Signature types for petitioners")
+```
+
+### counties
+
+Not for the first time, Derbyshire is anomalous and difficult to interpret because of its small numbers and gaps (and the high % of scribal "signatures" may say more about the county's clerks and record-keeping practices than about its petitioners). Cheshire doesn't offer the same excuse and the low % of petitioners signing is very striking. Worcestershire meanwhile has a considerably higher % of marks than the other counties. 
+
+Westminster has by some distance the highest % of petitioner signing their names, and (notwithstanding my caveats) that probably really does reflect higher levels of literacy in London. But it's highly unlikely that literacy was significantly lower in Cheshire than in neighbouring Staffordshire and Worcestershire, so why are the % so much lower?
+
+```{r qs_petrs_waffle_petitioners_signatures_county, fig.alt='waffle charts of petitioner signatures in the Power of Petitioning Quarter Sessions collections, comparing by county.'}
+#  qs_petrs_... , fig.alt='type of chart... of ... in the Power of Petitioning Quarter Sessions collections, note any interesting points about presentation. summarise any key findings not mentioned/enumerated in text'
+  qs_petitioners_combined %>%
+  filter(!is.na(petitioner_signed)) %>%
+  count(county, signature_type) %>%
+  group_by(county) %>%
+  mutate(p = n/sum(n)*100) %>%
+  ungroup() %>%
+  ggplot(aes(fill=signature_type, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, make_proportional = TRUE, n_rows = 5) +
+  coord_equal() +
+  facet_wrap(~county, nrow=1) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  #scale_fill_tableau() +
+  scale_fill_pander(guide = guide_legend(reverse = TRUE)) +
+  #theme(legend.position = "bottom",strip.text = element_text(angle = 45)) +
+  labs(fill="signature\ntype", caption="1 square = 1% of petitioners", title="Signature types, by county")
+```
+
+### gender
+
+The lower % of women signing their petitions with autograph signatures might come as no surprise. But this also highlights that petitioners who could not write their names didn't normally choose to sign with a mark instead. 
+
+```{r qs_petrs_waffle_petitioners_signatures_gender, fig.alt='waffle charts of petitioner signatures in the Power of Petitioning Quarter Sessions collections, comparing male and female petitioners. Only about 5% of female petitioners signed their petitions, compared to 21% of men.'}
+qs_petitioners_combined %>%
+  filter(!is.na(petitioner_signed), gender %in% c("male", "female")) %>%
+  count(gender, signature_type) %>%
+  group_by(gender) %>%
+  mutate(p = n/sum(n)*100) %>%
+  ungroup() %>%
+  ggplot(aes(fill=signature_type, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, make_proportional = TRUE, n_rows = 10) +
+  coord_equal() +
+  facet_wrap(~gender, nrow=1) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  #scale_fill_tableau() +
+  scale_fill_pander(guide = guide_legend(reverse = TRUE)) +
+  #theme(legend.position = "bottom",strip.text = element_text(angle = 45)) +
+  labs(fill="signature\ntype", caption="1 square = 1% of petitioners", title="Signature types, by gender")
+```
+
+
+
+### petition topics
+
+```{r}
+percent_signed_grp <- function(grp){
+  qs_petitioners_combined %>%
+  filter(!is.na(petitioner_signed), signature_type!="scribe", topic!="other") %>%
+  count({{grp}}, petitioner_signed) %>%
+  group_by({{grp}}) %>%
+  mutate(p = n/sum(n), s=sum(n)) %>%
+  filter(petitioner_signed=="yes") %>%
+  ggplot(aes(fct_reorder({{grp}}, p), p)) +
+  geom_point(aes(size=s), shape="square") +
+  geom_col(width=0.03) +
+  coord_flip() +
+  scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+  labs(y="% of petitioners", x=NULL, size="number of\npetitioners")
+}
+```
+
+Association between the presence of signatures and specific petition topics is very clear: again, even if this isn't directly about literacy, there are obvious correlations between higher signing % and topics where you might expect petitioners to be of higher/middling status, and the lowest % of signing are mostly related to poor relief. (There's no obvious relationship between signing and the size of a topic.)
+
+```{r qs_petrs_lollipop_petitioners_signatures_topic, fig.alt='lollip chart of percentage of petitioners in the Power of Petitioning Quarter Sessions collections who signed petitions, comparing by petition topic. Only debtors and dissenters signed more than 50% of the time; in the topics related to poor relief less than 10% of petitioners did so.'}
+percent_signed_grp(topic) +
+  labs(x="topic", title="Petitioners signing petitions, by topic")
+```
+
+### change over time
+
+
+```{r}
+  # qs_petitioners_combined %>%
+  # filter(!is.na(decade), county!="Herts") %>%
+  # count(county, decade, petitioner_signed) %>%
+  # group_by(decade) %>%
+  # mutate(p = n/sum(n), s=sum(n)) %>%
+  # filter(petitioner_signed=="y") %>%
+  # ggplot(aes(decade, p)) +
+  # geom_point() +
+  # #geom_smooth(formula = y~x, method="loess") +
+  # facet_wrap(~county, ncol = 1) +
+  # scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+  # labs(y="% of petitioners", size="number of\npetitioners", title="Petitioners signing petitions, by decade")
+```
+
+
+Here, however, there *is* a strong relationship between the popularity of petitioning and the % of petitioners signing their petitions, as well as the obvious change over time. (51 Westminster petitions couldn't be dated to within a decade. However, all were from c.1620-1640 and none were signed by the petitioners, so they'd make very little difference to this picture.)
+
+Between the 1610s and 1670s and in the 1690s (the rise in the 1680s is intriguing), signing rates never rose above 10% of petitioners. Also, even though numbers are relatively small, the rate seems consistently much higher in the late 16th century, around 25-30%. From 1700 signing rates rise dramatically again; from the 1710s they never fall below 50% and peak in the 90s in mid century. 
+
+(It's also worth remembering that petitioning declined much more sharply in Cheshire after the 1680s than in the other counties.) 
+
+
+```{r qs_petrs_scatter_petitioners_signatures_decade, fig.alt='scatter chart of percentages of petitioners who signed their petitions in the Power of Petitioning Quarter Sessions collections, break down by decade from late 16th to late 18th century. In the first half of the 17th century less than 10% signed, whereas during the 18th century more than 60% signed their petitions in almost every decade (and in some decades it was more than 80%).'}
+  qs_petitioners_combined %>%
+  filter(!is.na(petitioner_signed) ) %>%
+  count(decade, petitioner_signed) %>%
+  group_by(decade) %>%
+  mutate(p = n/sum(n), s=sum(n)) %>%
+  ungroup() %>%
+  filter(petitioner_signed=="yes") %>%
+  ggplot(aes(decade, p)) +
+  geom_point(aes(size=s), shape="square") +
+  geom_smooth(formula = y~x, method="loess") +
+  #coord_flip() +
+  scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+  labs(y="% of petitioners", size="number of\npetitioners", title="Petitioners signing petitions, by decade", caption = "excludes petitions that couldn't be dated to within a decade")
+```
+
+Tracking the % of petitions that have subscribers diverges from the chart for petitioners in some interesting ways. The % is consistently low in the first half of the 17th century, suddenly rises in the 1650s, falls again in the early 18th century before gradually increasing over the rest of that century. Could the sudden jump around 1650 suggest the influence of political revolution on collective activity in much more mundane areas of life?
+
+```{r qs_petrs_scatter_petitions_with_subscribers_decade , fig.alt='scatter chart of the percentage of petitions with subscribers in the Power of Petitioning Quarter Sessions collections, by decade between late 16th and late 18th century.'}
+# subscribers - intriguing...
+qs_petitions_combined %>%
+  filter(!is.na(decade)) %>%
+  count(decade, subscribers>0) %>%
+  group_by(decade) %>%
+  mutate(p = n/sum(n), s=sum(n)) %>%
+  filter(`subscribers > 0`==TRUE)%>%
+  ggplot(aes(decade, p)) +
+  geom_point(aes(size=s), shape="square") +
+  geom_smooth(formula = y~x, method="loess") +
+  #coord_flip() +
+  scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+  labs(y="% of petitions", size="number of\npetitions", title="Petitions with subscribers, by decade", caption = "excludes petitions that couldn't be dated to within a decade")
+```
+
+
+```{r}
+#number of subscribers per petition per decade?
+# qs_subscribers_combined %>%
+#   filter(!is.na(decade), signature_type!="scribe") %>%
+#   count(decade, reference, county) %>%
+#   ggplot(aes(decade, n)) +
+#   geom_jitter() +
+#   geom_smooth() +
+#   scale_y_log10()
+```
+
+
+
+
+```{r}
+## offcuts and stuff from here ####
+```
+
+
+
+```{r}
+## Create connection to db
+#csdb_conn <- dbConnect(RSQLite::SQLite(), "~/Documents/work/petitions/cheshire/case_study/tpop_case_study.db")
+
+
+## petitions 
+
+# qs_ches_petitions <-
+#   dbGetQuery(csdb_conn,"SELECT * FROM ches_qjf_petitions_metadata") %>%
+# # drop unphotographed
+#   filter(photographed=="y") %>%
+# # which are transcribed? for signatures you need to know
+#   left_join(
+#     dbGetQuery(csdb_conn, "select reference from ches_qjf_transcriptions") %>% mutate(transcribed="y"), by="reference"
+#   ) %>%
+#   replace_na(list(transcribed="n")) %>%
+#   mutate(year_parse = year, year_strict=year) %>%
+#   rename(petitioner=petr_nice)
+
+# will usually need to drop Somerset/Essex at least, depending on what you're doing
+# what are the NA years for this? all somerset (71). 
+# add transcribed=n
+# what happened to petition_type?
+# qs_level2_petitions <-
+#   dbGetQuery(csdb_conn, "select * from qs_add_petitions_metadata")  %>%
+#   mutate(decade = year - (year %% 10) ) %>%
+#   mutate(year_parse = year, year_strict=year, transcribed="n") %>%
+#   # need to do this again here because it's effed up in the db :-(
+#     mutate(petition_type = case_when(
+#     str_detect(pet_type, "collective|single|multiple") ~ pet_type,
+#     pet_type=="named" & named_petrs==1 ~ "single",
+#     pet_type=="named" & named_petrs>1 ~ "multiple",
+#     pet_type=="named on behalf" ~ "multiple on behalf"
+#   )) %>%
+#   # drop pet_type now you've fixed it, to avoid confusion?
+# # use rowid as doc_no
+#   rename(doc_no=rowid)
+
+# no na documentyear. 44 NA year after proc, as expected. so ok
+# (this is the same as previous level1 without ches)
+# qs_level1_petitions <-
+#   dbGetQuery(csdb_conn, "select * from bho_qs_ex_ches_petitions_metadata") %>%
+#   mutate(year = case_when(
+#     documentyear=="1620-1621" ~ 1620,
+#     documentyear=="1620-1628" ~ 1625,
+#     documentyear=="1634-1639" ~ 1635,
+#     documentyear=="1636-1640" ~ 1638,
+#     documentyear=="1639-1640" ~ 1640,
+#     documentyear %in% c("1649-1659", "1650-1659", "n.d. [1650s]") ~ 1655,
+#     documentyear=="1680-1689" ~ 1685,
+#     TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""), na="[1620-1640]")
+#   ))  %>%
+#   mutate(decade = year - (year %% 10) ) %>%
+#    # this will only allow exact years
+#   mutate(year_strict = case_when(
+#     str_detect(documentyear, "\\D") ~ NA_real_,
+#     TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""))
+#   ))  %>%
+#    # the opposite extreme: gives *everything* it can a year, using the first year if there's a range, if you want to restrict eg to 1580-1720 but exact dates within the range don't matter
+#    mutate(year_parse = parse_number(str_replace(documentyear, "n.d. \\[", ""))) %>%
+#   # fix slightly iffy collective petition type. 
+#   mutate(petition_type = case_when(
+#     petition_type=="collective" & named_petrs==1 ~ "single",
+#     petition_type=="collective" & named_petrs==3 ~ "multiple",
+#     TRUE ~ petition_type
+#   ))
+
+
+# levels 1-3 - for this one, only stuff that's in all 3 qs datasets
+# qs_petitions_combined <-
+#   bind_rows(
+#     qs_ches_petitions,
+#     qs_level1_petitions,
+#     qs_level2_petitions %>% filter(county=="Herts")
+#   ) %>%
+#   # fix extra spaces in multiple on behalf :<
+#   mutate(petition_type = str_replace_all(petition_type, " +", " "))  %>%
+#   mutate(petition_type_s = case_when(
+#     petition_type=="single" & named_petrs==1 ~ "single",
+#     str_detect(petition_type, "collective") ~ "collective",
+#     str_detect(petition_type, "multiple") ~ "group"
+#   )) %>% 
+#   mutate(gender = case_when(
+#     pet_gender=="f" ~ "female", 
+#     pet_gender=="fm" ~ "mixed", 
+#     pet_gender=="m" ~ "male", 
+#     #pet_gender=="u" ~ "unknown", # only 9 of these apparently
+#     TRUE ~ "na")) %>%
+#   replace_na(list(transcribed="y")) %>%
+#   mutate(level = case_when(
+#     transcribed=="y" ~ 1,
+#     county!="Ches" ~ 3,
+#     county=="Ches" ~ 2
+#   )) %>%
+#   select(reference, doc_no, county, decade, topic, subtopic, petition_type, petition_type_s, gender, named_petrs, subscribers, sub_gender, year, year_strict, year_parse, transcribed, level) %>%
+#   # a single-column unique id for each petition - to match petitioners (fixed doc_no)
+#   mutate(petition_id = paste(county, reference, doc_no, sep="_"))
+
+
+#dbListTables(csdb_conn)
+
+
+
+#dbGetQuery(csdb_conn, "select * from ches_qjf_petr_subs_metadata") 15 cols. has first not last.
+#dbGetQuery(csdb_conn, "select * from bho_qs_ches_petitioners") # 12 cols but same num rows.
+#dbGetQuery(csdb_conn, "select * from bho_qs_petitioners") # 14 cols
+#dbGetQuery(csdb_conn, "select * from `superseded_ bho_qs_ex_ches_petitioners`") # 13. has first, not last
+
+#dbGetQuery(csdb_conn, "select * from bho_hol_petitioners")
+#dbGetQuery(csdb_conn, "select * from qs_se_petitioners") # incl herts. first, not last
+```
+
+
+
+
+```{r}
+# why do some names join on rowid/name_id but not most? that doesn't make much sense
+# qs_petrs_names_csv %>%
+#   anti_join(qs_petitioners_combined, by=c("rowid"="name_id", "reference"))
+
+# these seem to be missing from the csv, rather than a join problem. for what you want, i think 13 not an issue
+# qs_petitioners_combined %>%
+#   filter(county !="Ches", county !="Herts") %>%
+#   anti_join(bho_qs_petrs_csv %>%
+#                mutate(petition_id=paste(county, reference, doc_no, sep="_")), by=c("petition_id", "name"))
+# what about Ches and Herts?
+# found ches...
+
+# ches. first and last.
+#read_rds("/Users/sharonhoward/r_projects/petitions/case_study/cs_data/cheshire_qjf_names_petr_sub_metadata_20210711.Rds")
+
+# rowid/name_id *doesn't* join. but reference + name does.
+# qs_ches_petitioners %>%
+#   inner_join(ches_qs_petrs_names_rds %>% select(reference, name, first, last), by=c("reference", "name"))
+
+# rowid joins, apart from teh 13 missing
+# qs_ex_ches_petitioners %>%
+#   left_join(qs_petrs_names_csv %>% select(rowid, reference, first, last), by=c("rowid", "reference")) %>%
+#   mutate(first = case_when(
+#     is.na(first) ~ word(name),
+#     TRUE ~ first
+#   )) %>%
+#   # how to get the second word!
+#   mutate(last = case_when(
+#     !is.na(last) ~ last,
+#     TRUE ~ word(str_trim(str_remove(name, first)))
+#   ))
+
+# Mr Sir. first is there but lower case so might as well replace it.
+# qs_herts_petitioners %>%
+#   mutate(petr = str_remove(name, "^(Sir|Mr) +")) %>%
+#   #filter(str_detect(name, "^(Mr|Sir|Earl)")) %>%
+#   mutate(first= word(petr)) %>% #count(first)
+#   mutate(last = word(str_trim(str_remove(petr, first)))) %>%
+#   relocate(petr, first, last)
+
+# incl herts. first only, not last. which you should already have...
+#read_rds("/Users/sharonhoward/r_projects/petitions/case_study/cs_data/qs_add_petitioners_metadata_210806.Rds")
+```
+
+
+```{r include=FALSE}
+# i don't fucking believe this shit pet_type/petition_type. didn't i do all this?
+# ALL Herts are NA petition_type WTAF?
+# dbGetQuery(csdb_conn, "select * from qs_add_petitions_metadata")  %>%
+#   filter(county=="Herts") %>%
+#   #count(pet_type, petition_type) %>%
+# #what's gone wrong? this was the code. works perfectly, so how did it get lost again?
+#   mutate(petition_type = case_when(
+#     str_detect(pet_type, "collective|single|multiple") ~ pet_type,
+#     pet_type=="named" & named_petrs==1 ~ "single",
+#     pet_type=="named" & named_petrs>1 ~ "multiple",
+#     pet_type=="named on behalf" ~ "multiple on behalf"
+#   )) %>%
+#   count(pet_type, petition_type)
+
+
+
+# qs_add_petitioners %>% count(county, doc_no)
+# doc_no still not unique if it's cheshire i'll scream. ok, it's herts.
+# rowid as = doc_no in level2 petitions
+# 413 petitions in herts; 319 named>0. ok that matches unique doc_no in petrs. i am sick of this shit.
+# qs_petitioners_combined %>%
+#   filter(is.na(doc_no)) %>%
+#   count(county, reference, doc_no)
+# 1788 cheshire missing from petrs? only one petition and it's collective
+# qs_ches_petitioners %>%
+#   inner_join(qs_ches_petitions, by="reference") %>%
+#   count(year)
+
+
+#do i want to know how na ps_sig_type can be not na sig_type? probably not iow don't use ps_sig_type
+# qs_petitioners_combined %>%
+#   count(sig_type, ps_sig_type, signature_type)
+```
+
+
+```{r}
+#The House of Lords petitions are broadly similar but 
+# dbGetQuery(csdb_conn, "select * from bho_hol_petitioners") %>%
+#   filter(name_type =="not_named" & petr_or_sub=="petr")  # 149 of 
+
+
+
+# hol_petitioners %>%  #count(named_petrs) 0=382
+#   count(reference, doc_id, name="named_petrs") %>%
+#   ggplot(aes(named_petrs)) +
+#   geom_histogram(binwidth = 1) +
+#   labs(x="number of petitioners", title="Named petitioners per HoL petition")
+```
