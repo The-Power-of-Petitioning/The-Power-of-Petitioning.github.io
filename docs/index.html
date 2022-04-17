@@ -56,7 +56,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }
 code span.al { color: #ad0000; } /* Alert */
 code span.an { color: #5e5e5e; } /* Annotation */
-code span.at { color: #20794d; } /* Attribute */
+code span.at { } /* Attribute */
 code span.bn { color: #ad0000; } /* BaseN */
 code span.bu { } /* BuiltIn */
 code span.cf { color: #007ba5; } /* ControlFlow */
@@ -77,13 +77,14 @@ code span.kw { color: #007ba5; } /* Keyword */
 code span.op { color: #5e5e5e; } /* Operator */
 code span.ot { color: #007ba5; } /* Other */
 code span.pp { color: #ad0000; } /* Preprocessor */
-code span.sc { color: #20794d; } /* SpecialChar */
+code span.sc { color: #5e5e5e; } /* SpecialChar */
 code span.ss { color: #20794d; } /* SpecialString */
 code span.st { color: #20794d; } /* String */
 code span.va { color: #111111; } /* Variable */
 code span.vs { color: #20794d; } /* VerbatimString */
 code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 </style>
+
 
   <!--radix_placeholder_meta_tags-->
   <title>Exploring the Power of Petitioning: The Power of Petitioning</title>
@@ -455,7 +456,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
   </style>
 
-  <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+  <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
   <link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet"/>
   <link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet"/>
   <script src="site_libs/headroom-0.9.4/headroom.min.js"></script>
@@ -1862,7 +1863,10 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
       // hoverable references
       $('span.citation[data-cites]').each(function() {
-        var refHtml = $('#ref-' + $(this).attr('data-cites')).html();
+        var refs = $(this).attr('data-cites').split(" ");
+        var refHtml = refs.map(function(ref) {
+          return "<p>" + $('#ref-' + ref).html() + "</p>";
+        }).join("\n");
         window.tippy(this, {
           allowHTML: true,
           content: refHtml,
@@ -2033,7 +2037,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </script>
 
   <!--/radix_placeholder_distill-->
-  <script src="site_libs/header-attrs-2.8/header-attrs.js"></script>
+  <script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
   <script src="site_libs/popper-2.6.0/popper.min.js"></script>
   <link href="site_libs/tippy-6.2.7/tippy.css" rel="stylesheet" />
   <link href="site_libs/tippy-6.2.7/tippy-light-border.css" rel="stylesheet" />
@@ -2077,44 +2081,74 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <h1>The Power of Petitioning</h1>
 <!--radix_placeholder_categories-->
 <!--/radix_placeholder_categories-->
-<p><p>Exploring and visualising the power of early modern petitioning</p></p>
+<p><p>Exploring and visualising the power of early modern
+petitioning</p></p>
 </div>
 
 
 <div class="d-article">
-<p>This a website by <a href="http://sharonhoward.org">Sharon Howard</a> for exploring and visualising data created by and for the <a href="https://petitioning.history.ac.uk/">Power of Petitioning in the 17th Century</a> (TPOP). Most pieces are likely to be quite short, with commentary focusing on explanation of the visuals rather than discussion of findings.</p>
-<p>In the first instance, I’ll be focusing on <a href="https://www.british-history.ac.uk/petitions/cheshire">Cheshire petitions</a> because I’m writing a case study on the county, and particularly on exploring themes that I want to think about in the case study.</p>
-<p>The second reason for the website is to give me a place for slightly more thought-out and smartened-up versions of visualisations I’ve posted from time to time on Twitter (and keep losing track of!).</p>
+<p>This a website by <a href="http://sharonhoward.org">Sharon Howard</a>
+for exploring and visualising data created by and for the <a
+href="https://petitioning.history.ac.uk/">Power of Petitioning in the
+17th Century</a> (TPOP). Most pieces are likely to be quite short, with
+commentary focusing on explanation of the visuals rather than discussion
+of findings.</p>
+<p>In the first instance, I’ll be focusing on <a
+href="https://www.british-history.ac.uk/petitions/cheshire">Cheshire
+petitions</a> because I’m writing a case study on the county, and
+particularly on exploring themes that I want to think about in the case
+study.</p>
+<p>The second reason for the website is to give me a place for slightly
+more thought-out and smartened-up versions of visualisations I’ve posted
+from time to time on Twitter (and keep losing track of!).</p>
 <h2 id="data">Data</h2>
 <h3 id="tpop-collections">TPOP collections</h3>
 <ul>
 <li>Quarter Sessions:
 <ul>
-<li><a href="https://www.british-history.ac.uk/petitions/cheshire">Cheshire QS</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/derbyshire">Derbyshire</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/staffordshire">Staffordshire</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/westminster">Westminster</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/worcs-quarter-sessions">Worcestershire</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/cheshire">Cheshire
+QS</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/derbyshire">Derbyshire</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/staffordshire">Staffordshire</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/westminster">Westminster</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/worcs-quarter-sessions">Worcestershire</a></li>
 </ul></li>
-<li><a href="https://www.british-history.ac.uk/petitions/house-of-lords">House of Lords</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/state-papers">State Papers</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/house-of-lords">House
+of Lords</a></li>
+<li><a
+href="https://www.british-history.ac.uk/petitions/state-papers">State
+Papers</a></li>
 </ul>
 <h3 id="potential-extra-datasets">potential extra datasets</h3>
 <ul>
-<li>catalogues data (including more QS, Chester Assembly petitions…)</li>
-<li>printed petitions in EEBO-TCP (a small corpus of ~400 petitions)</li>
-<li><a href="http://london.sharonhoward.org">London Lives Petitions</a></li>
+<li>catalogues data (including more QS, Chester Assembly
+petitions…)</li>
+<li>printed petitions in EEBO-TCP (a small corpus of ~400
+petitions)</li>
+<li><a href="http://london.sharonhoward.org">London Lives
+Petitions</a></li>
 </ul>
 <h2 id="themes-for-exploration">Themes for exploration</h2>
 <ul>
-<li>contexts</li>
-<li><a href="responses.html">responses</a> (Cheshire QS)</li>
+<li><a href="petitioners.html">petitioners</a> (QS)</li>
+<li><a href="responses.html">responses</a> (QS)</li>
 <li><a href="topics.html">topics</a> (QS)</li>
-<li>gender</li>
-<li>supporters</li>
+</ul>
+<p>in preparation:</p>
+<ul>
+<li>contexts</li>
 <li>texts</li>
 </ul>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
+<p>Explorations will also hopefully be expanded beyond my current focus
+on Quarter Sessions petitions at some stage.</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode r distill-force-highlighting-css"><code class="sourceCode r"></code></pre></div>
 <!--radix_placeholder_article_footer-->
 <!--/radix_placeholder_article_footer-->
 </div>
