@@ -752,8 +752,10 @@ qs_petitions_combined %>%
 #   facet_wrap(~gender, scales = "free_y")
 ```
 
+Comparing gender across counties: Herts and Staffs are noticeably lower female % (about 15%) than the other four counties (25-30%).
 
-```{r}
+
+```{r qs_petrs_waffle_gender_petitioners_county, fig.alt='waffle charts of petitioner gender, breakdown by county.'}
 # thread https://twitter.com/sharon_howard/status/1222197505380749312  [2020/01/28]
 # Who likes waffle charts?
 
@@ -810,11 +812,11 @@ In transcriptions, signatures were also marked up for "type" of signature:
 - autograph signature
 - name written in the same hand as the main petition text
 
-The last of these can be difficult to interpret. In most cases, it's *not* because the petition was written by the petitioner; inspection of the Cheshire images indicates that the only instances of this were less formal petitionary letters. In some cases - certainly for subscribers - it looks possible that the petition is a copy rather than the original document. For petitioners it's hard to be sure whether it's a copy of an original autograph or a scribal decision to write out the name as a kind of pseudo-signature and so I'll only include them in breakdowns by signature type.
+The last of these can be difficult to interpret. In most cases, it's *not* because the petition was written by the petitioner; inspection of the Cheshire petition images indicates that the only instances of this were less typical petitionary letters. In some cases - certainly for subscribers - it looks possible that the petition is a copy rather than the original document. For petitioners it's hard to be sure whether it's a copy of an original autograph or a scribal decision to write out the name as a kind of pseudo-signature and so I'll only include them in breakdowns by signature type.
 
 Initials are very rare (<10, only 1 of which is for a petitioner) and so are counted with marks for this analysis. However, this in itself seems quite noteworthy, as I might expect them to be more common based on my recollection of other types of document in early modern court archives such as witness examinations. (Though I wouldn't guarantee that my memory is reliable, and I'd need some data to verify this.)
 
-Moreover, as we'll see, even when combined marks and initials are not very common - considerably less common, I suspect, than in witness examinations even though I might expect petitioners to be of fairly similar social status to witnesses.
+Moreover, as can be seen, even when combined marks and initials are not very common (only 2% of all petitioners signed this way, or 12% of signatures excluding scribal) - considerably less common, I suspect, than in witness examinations even though I might expect petitioners to be of fairly similar social status to witnesses.
 
 
 ```{r}
@@ -834,7 +836,7 @@ Moreover, as we'll see, even when combined marks and initials are not very commo
 
 qs_petitioners_combined %>%
   filter(!is.na(signature_type)) %>%
-  count(signature_type) %>%
+  count(signature_type) %>% #filter(signature_type %in% c("mark", "sign")) %>% mutate(p=n/sum(n)*100)
   ggplot(aes(fill=signature_type, values=n)) +
   geom_waffle(colour="white", flip=TRUE, #make_proportional = TRUE, 
               n_rows = 40) +
@@ -846,6 +848,28 @@ qs_petitioners_combined %>%
   #theme(legend.position = "bottom",strip.text = element_text(angle = 45)) +
   labs(fill="type", caption="1 square = 1 petitioner", title="Signature types for petitioners")
 ```
+
+
+The same for subscribers, and here (since there are no "[none]" to worry about) the low percentage of supporters signing by mark/initials is really striking, at about 4% (excluding scribal). This carries some clear implications about the social status of subscribers, and potentially these rates could be compared to data from studies of literacy.
+
+
+```{r qs_petrs_waffle_subscribers_signatures, fig.alt='waffle chart of subscriber signatures in the Power of Petitioning Quarter Sessions collections. '}
+
+qs_subscribers_combined %>%
+  filter(!is.na(signature_type)) %>%
+  count(signature_type) %>% #filter(signature_type!="scribe") %>% mutate(p=n/sum(n)*100)
+  ggplot(aes(fill=signature_type, values=n)) +
+  geom_waffle(colour="white", flip=TRUE, #make_proportional = TRUE, 
+              n_rows = 50) +
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  #scale_fill_tableau(guide = guide_legend(reverse = TRUE)) +
+  scale_fill_pander(guide = guide_legend(reverse = TRUE)) +
+  #theme(legend.position = "bottom",strip.text = element_text(angle = 45)) +
+  labs(fill="type", caption="1 square = 1 subscriber", title="Signature types for subscribers")
+```
+
 
 ### counties
 
