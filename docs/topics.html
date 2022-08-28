@@ -50,16 +50,17 @@ pre.numberSource code > span > a:first-child::before
   }
 pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
 div.sourceCode
-  {   }
+  { color: #00769e; background-color: #f1f3f5; }
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
+code span { color: #00769e; } /* Normal */
 code span.al { color: #ad0000; } /* Alert */
 code span.an { color: #5e5e5e; } /* Annotation */
-code span.at { } /* Attribute */
+code span.at { color: #657422; } /* Attribute */
 code span.bn { color: #ad0000; } /* BaseN */
 code span.bu { } /* BuiltIn */
-code span.cf { color: #007ba5; } /* ControlFlow */
+code span.cf { color: #00769e; } /* ControlFlow */
 code span.ch { color: #20794d; } /* Char */
 code span.cn { color: #8f5902; } /* Constant */
 code span.co { color: #5e5e5e; } /* Comment */
@@ -73,9 +74,9 @@ code span.fl { color: #ad0000; } /* Float */
 code span.fu { color: #4758ab; } /* Function */
 code span.im { } /* Import */
 code span.in { color: #5e5e5e; } /* Information */
-code span.kw { color: #007ba5; } /* Keyword */
+code span.kw { color: #00769e; } /* Keyword */
 code span.op { color: #5e5e5e; } /* Operator */
-code span.ot { color: #007ba5; } /* Other */
+code span.ot { color: #00769e; } /* Other */
 code span.pp { color: #ad0000; } /* Preprocessor */
 code span.sc { color: #5e5e5e; } /* SpecialChar */
 code span.ss { color: #20794d; } /* SpecialString */
@@ -1031,10 +1032,6 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
     margin-top: 1.5em;
   }
 
-  .figure img {
-    width: 100%;
-  }
-
   .figure .caption {
     color: rgba(0, 0, 0, 0.6);
     font-size: 12px;
@@ -1864,6 +1861,12 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
       // hoverable references
       $('span.citation[data-cites]').each(function() {
+        if ($(this).children()[0].nodeName == "D-FOOTNOTE") {
+          var fn = $(this).children()[0]
+          $(this).html(fn.shadowRoot.querySelector("sup"))
+          $(this).id = fn.id
+          fn.remove()
+        }
         var refs = $(this).attr('data-cites').split(" ");
         var refHtml = refs.map(function(ref) {
           return "<p>" + $('#ref-' + ref).html() + "</p>";
@@ -1878,6 +1881,31 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
           placement: 'bottom-start'
         });
       });
+
+      // fix footnotes in tables (#411)
+      // replacing broken distill.pub feature
+      $('table d-footnote').each(function() {
+        // we replace internal showAtNode methode which is triggered when hovering a footnote
+        this.hoverBox.showAtNode = function(node) {
+          // ported from https://github.com/distillpub/template/pull/105/files
+          calcOffset = function(elem) {
+              let x = elem.offsetLeft;
+              let y = elem.offsetTop;
+              // Traverse upwards until an `absolute` element is found or `elem`
+              // becomes null.
+              while (elem = elem.offsetParent && elem.style.position != 'absolute') {
+                  x += elem.offsetLeft;
+                  y += elem.offsetTop;
+              }
+
+              return { left: x, top: y };
+          }
+          // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetTop
+          const bbox = node.getBoundingClientRect();
+          const offset = calcOffset(node);
+          this.show([offset.left + bbox.width, offset.top + bbox.height]);
+        }
+      })
 
       // clear polling timer
       clearInterval(tid);
@@ -1977,6 +2005,8 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
     // mark non-body figures created by knitr chunks as 100% width
     $('.layout-chunk').each(function(i, val) {
       var figures = $(this).find('img, .html-widget');
+      // ignore leaflet img layers (#106)
+      figures = figures.filter(':not(img[class*="leaflet"])')
       if ($(this).attr('data-layout') !== "l-body") {
         figures.css('width', '100%');
       } else {
@@ -1999,7 +2029,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
     // get rid of index.html references in header
     if (window.location.protocol !== "file:") {
       $('.distill-site-header a[href]').each(function(i,val) {
-        $(this).attr('href', $(this).attr('href').replace("index.html", "./"));
+        $(this).attr('href', $(this).attr('href').replace(/^index[.]html/, "./"));
       });
     }
 
@@ -2038,7 +2068,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </script>
 
   <!--/radix_placeholder_distill-->
-  <script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+  <script src="site_libs/header-attrs-2.15/header-attrs.js"></script>
   <script src="site_libs/popper-2.6.0/popper.min.js"></script>
   <link href="site_libs/tippy-6.2.7/tippy.css" rel="stylesheet" />
   <link href="site_libs/tippy-6.2.7/tippy-light-border.css" rel="stylesheet" />
@@ -2096,33 +2126,41 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <nav class="l-text toc figcaption" id="TOC">
 <h3>Contents</h3>
 <ul>
-<li><a href="#quarter-sessions-petitions-topics-and-themes">Quarter
-Sessions petitions topics and themes</a></li>
-<li><a href="#the-data">The data</a>
+<li><a href="#quarter-sessions-petitions-topics-and-themes"
+id="toc-quarter-sessions-petitions-topics-and-themes">Quarter Sessions
+petitions topics and themes</a></li>
+<li><a href="#the-data" id="toc-the-data">The data</a>
 <ul>
-<li><a href="#the-counties">The counties</a></li>
-<li><a href="#the-topics">The topics</a></li>
-<li><a href="#caveats">caveats</a></li>
+<li><a href="#the-counties" id="toc-the-counties">The counties</a></li>
+<li><a href="#the-topics" id="toc-the-topics">The topics</a></li>
+<li><a href="#caveats" id="toc-caveats">caveats</a></li>
 </ul></li>
-<li><a href="#overview-of-topics">Overview of topics</a></li>
-<li><a href="#comparing-counties-three-views">Comparing counties: three
+<li><a href="#overview-of-topics" id="toc-overview-of-topics">Overview
+of topics</a></li>
+<li><a href="#comparing-counties-three-views"
+id="toc-comparing-counties-three-views">Comparing counties: three
 views</a>
 <ul>
-<li><a href="#a-bar-chart">a bar chart</a></li>
-<li><a href="#another-bar-chart">another bar chart</a></li>
-<li><a href="#mosaic-plot">mosaic plot</a></li>
+<li><a href="#a-bar-chart" id="toc-a-bar-chart">a bar chart</a></li>
+<li><a href="#another-bar-chart" id="toc-another-bar-chart">another bar
+chart</a></li>
+<li><a href="#mosaic-plot" id="toc-mosaic-plot">mosaic plot</a></li>
 </ul></li>
-<li><a href="#change-over-time">Change over time</a>
+<li><a href="#change-over-time" id="toc-change-over-time">Change over
+time</a>
 <ul>
-<li><a href="#stacked-bar-chart">stacked bar chart</a></li>
-<li><a href="#faceted-bar-chart">faceted bar chart</a></li>
-<li><a href="#heatmap">heatmap</a></li>
+<li><a href="#stacked-bar-chart" id="toc-stacked-bar-chart">stacked bar
+chart</a></li>
+<li><a href="#faceted-bar-chart" id="toc-faceted-bar-chart">faceted bar
+chart</a></li>
+<li><a href="#heatmap" id="toc-heatmap">heatmap</a></li>
 </ul></li>
-<li><a href="#gender">Gender</a>
+<li><a href="#gender" id="toc-gender">Gender</a>
 <ul>
-<li><a href="#stacked-bar-chart-1">stacked bar chart</a></li>
-<li><a href="#mosaic">mosaic</a></li>
-<li><a href="#heatmap-1">heatmap</a></li>
+<li><a href="#stacked-bar-chart-1" id="toc-stacked-bar-chart-1">stacked
+bar chart</a></li>
+<li><a href="#mosaic" id="toc-mosaic">mosaic</a></li>
+<li><a href="#heatmap-1" id="toc-heatmap-1">heatmap</a></li>
 </ul></li>
 </ul>
 </nav>
@@ -2143,6 +2181,14 @@ href="https://www.british-history.ac.uk/search/series/petitions">British
 History Online editions</a>, so I’ll focus more on an overview and
 comparisons here.</p>
 <h2 id="the-data">The data</h2>
+<p>The data is available, with full documentation, from <a
+href="https://doi.org/10.5281/zenodo.7027692">Zenodo</a>.</p>
+<p>[<strong>Note</strong>: the first version of this page also included
+about 400 Hertfordshire petitions, for which I had less detailed
+information. The Hertfordshire data has not been included in TPOP’s
+public data release and it made only minor differences to the analysis
+on this page, so I’ve removed it for now. Some statistics will differ
+from the original version.]</p>
 <h3 id="the-counties">The counties</h3>
 <ul>
 <li><a
@@ -2160,12 +2206,6 @@ href="https://www.british-history.ac.uk/petitions/derbyshire/introduction">Derby
 petitions]</li>
 <li>NB however, many surviving petitions can’t be dated and have been
 excluded from the collection</li>
-</ul></li>
-<li>Hertfordshire
-<ul>
-<li>metadata only 1588-1698</li>
-<li>(I think) every surviving petition, but 16th-17th century only [413
-petitions]</li>
 </ul></li>
 <li><a
 href="https://www.british-history.ac.uk/petitions/staffordshire/introduction">Staffordshire</a>
@@ -2188,6 +2228,9 @@ href="https://www.british-history.ac.uk/petitions/worcs-quarter-sessions/introdu
 [360 petitions]</li>
 </ul></li>
 </ul>
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
 <h3 id="the-topics">The topics</h3>
 <ul>
 <li><strong>alehouse</strong>: all about licences (including victualling
@@ -2338,20 +2381,14 @@ picture!</p>
 <p>(white tiles represent 0s)</p>
 <p>This heatmap is an example of how stripping away subtlety can be
 useful to draw attention to particularly strong patterns. In this case,
-the “hot” cluster of petitions for military pensions in the 1650s
-dramatically highlights one legacy of the Civil Wars. But it indicates
+the “warm” cluster of petitions for military pensions in the 1650s
+dramatically highlights a legacy of the Civil Wars. But it indicates
 that a number of other topics were <em>also</em> at or near peaking
 around the middle of the 17th century. The heatmap also highlights the
 sparsity of petitions in many topics after 1700, except for the new
 topics of dissenting worship and imprisoned debtors.</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="topics_files/figure-html5/topics_decades_pc_heatmap-1.png" title="heatmap of QS petition topics per decade, using percentages of topic rather than numbers; useful to draw attention to the most exceptional topic-decades." alt="heatmap of QS petition topics per decade, using percentages of topic rather than numbers; useful to draw attention to the most exceptional topic-decades." width="624" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
 </div>
 <h2 id="gender">Gender</h2>
 <p>(“na” = collective petitions and a handful of unknowns)</p>
@@ -2371,11 +2408,12 @@ big differences in size between the gender groups.</p>
 clearly.</p>
 <p>Eg, female petitioners are strongly positively associated with poor
 relief and paternity, while the negative associations with alehouse,
-cottage, officeholding are somewhat weaker. The strongest association
-for male petitions is the negative one with paternity petitions. For
-collective petitions it’s all about rates (and it is common for
-“inhabitants” of a township or parish to group together to complain
-about taxes), but they’re less likely to be litigation-related.</p>
+cottage, officeholding are somewhat weaker. Stronger associations for
+male petitions are negative ones with paternity and poor relief
+petitions. For collective petitions it’s all about rates (and it is
+common for “inhabitants” of a township or parish to group together to
+complain about taxes), but they’re less likely to be
+litigation-related.</p>
 <p>Conversely, eg, although you can see in the bar chart a lower female
 than male % for military petitions, the difference is too small to
 register as <em>statistically</em> significant.</p>
@@ -2384,8 +2422,8 @@ register as <em>statistically</em> significant.</p>
 </div>
 <h3 id="heatmap-1">heatmap</h3>
 <p>The strong association between mixed gender petitions and litigation
-stands out even more here than in the mosaic. It’s an intriguing one,
-even allowing for the small size of the group.</p>
+stands out here too. It’s an intriguing one, even allowing for the small
+size of the group.</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="topics_files/figure-html5/topics_gender_heatmap-1.png" title="heatmap of QS petition topics by gender, using percentage of gender rather than numbers. Intriguing hotspot for mixed gender/litigation petitions." alt="heatmap of QS petition topics by gender, using percentage of gender rather than numbers. Intriguing hotspot for mixed gender/litigation petitions." width="624" /></p>
 </div>

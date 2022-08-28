@@ -50,16 +50,17 @@ pre.numberSource code > span > a:first-child::before
   }
 pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
 div.sourceCode
-  {   }
+  { color: #00769e; background-color: #f1f3f5; }
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
+code span { color: #00769e; } /* Normal */
 code span.al { color: #ad0000; } /* Alert */
 code span.an { color: #5e5e5e; } /* Annotation */
-code span.at { } /* Attribute */
+code span.at { color: #657422; } /* Attribute */
 code span.bn { color: #ad0000; } /* BaseN */
 code span.bu { } /* BuiltIn */
-code span.cf { color: #007ba5; } /* ControlFlow */
+code span.cf { color: #00769e; } /* ControlFlow */
 code span.ch { color: #20794d; } /* Char */
 code span.cn { color: #8f5902; } /* Constant */
 code span.co { color: #5e5e5e; } /* Comment */
@@ -73,9 +74,9 @@ code span.fl { color: #ad0000; } /* Float */
 code span.fu { color: #4758ab; } /* Function */
 code span.im { } /* Import */
 code span.in { color: #5e5e5e; } /* Information */
-code span.kw { color: #007ba5; } /* Keyword */
+code span.kw { color: #00769e; } /* Keyword */
 code span.op { color: #5e5e5e; } /* Operator */
-code span.ot { color: #007ba5; } /* Other */
+code span.ot { color: #00769e; } /* Other */
 code span.pp { color: #ad0000; } /* Preprocessor */
 code span.sc { color: #5e5e5e; } /* SpecialChar */
 code span.ss { color: #20794d; } /* SpecialString */
@@ -87,7 +88,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
 
   <!--radix_placeholder_meta_tags-->
-  <title>Exploring the Power of Petitioning: Petitioners and supporters</title>
+  <title>Exploring the Power of Petitioning: QS petitioners and supporters</title>
 
   <meta property="description" itemprop="description" content="A closer look at the people behind petitions"/>
 
@@ -95,7 +96,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   <meta name="article:author" content="Sharon Howard"/>
 
   <!--  https://developers.facebook.com/docs/sharing/webmasters#markup -->
-  <meta property="og:title" content="Exploring the Power of Petitioning: Petitioners and supporters"/>
+  <meta property="og:title" content="Exploring the Power of Petitioning: QS petitioners and supporters"/>
   <meta property="og:type" content="article"/>
   <meta property="og:description" content="A closer look at the people behind petitions"/>
   <meta property="og:locale" content="en_US"/>
@@ -103,14 +104,14 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
   <!--  https://dev.twitter.com/cards/types/summary -->
   <meta property="twitter:card" content="summary"/>
-  <meta property="twitter:title" content="Exploring the Power of Petitioning: Petitioners and supporters"/>
+  <meta property="twitter:title" content="Exploring the Power of Petitioning: QS petitioners and supporters"/>
   <meta property="twitter:description" content="A closer look at the people behind petitions"/>
 
   <!--/radix_placeholder_meta_tags-->
   <!--radix_placeholder_rmarkdown_metadata-->
 
   <script type="text/json" id="radix-rmarkdown-metadata">
-  {"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","description","author","output"]}},"value":[{"type":"character","attributes":{},"value":["Petitioners and supporters"]},{"type":"character","attributes":{},"value":["A closer look at the people behind petitions\n"]},{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name"]}},"value":[{"type":"character","attributes":{},"value":["Sharon Howard"]}]}]},{"type":"character","attributes":{},"value":["distill::distill_article"]}]}
+  {"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["title","description","author","output"]}},"value":[{"type":"character","attributes":{},"value":["QS petitioners and supporters"]},{"type":"character","attributes":{},"value":["A closer look at the people behind petitions\n"]},{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name"]}},"value":[{"type":"character","attributes":{},"value":["Sharon Howard"]}]}]},{"type":"character","attributes":{},"value":["distill::distill_article"]}]}
   </script>
   <!--/radix_placeholder_rmarkdown_metadata-->
   <!--radix_placeholder_navigation_in_header-->
@@ -1031,10 +1032,6 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
     margin-top: 1.5em;
   }
 
-  .figure img {
-    width: 100%;
-  }
-
   .figure .caption {
     color: rgba(0, 0, 0, 0.6);
     font-size: 12px;
@@ -1864,6 +1861,12 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 
       // hoverable references
       $('span.citation[data-cites]').each(function() {
+        if ($(this).children()[0].nodeName == "D-FOOTNOTE") {
+          var fn = $(this).children()[0]
+          $(this).html(fn.shadowRoot.querySelector("sup"))
+          $(this).id = fn.id
+          fn.remove()
+        }
         var refs = $(this).attr('data-cites').split(" ");
         var refHtml = refs.map(function(ref) {
           return "<p>" + $('#ref-' + ref).html() + "</p>";
@@ -1878,6 +1881,31 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
           placement: 'bottom-start'
         });
       });
+
+      // fix footnotes in tables (#411)
+      // replacing broken distill.pub feature
+      $('table d-footnote').each(function() {
+        // we replace internal showAtNode methode which is triggered when hovering a footnote
+        this.hoverBox.showAtNode = function(node) {
+          // ported from https://github.com/distillpub/template/pull/105/files
+          calcOffset = function(elem) {
+              let x = elem.offsetLeft;
+              let y = elem.offsetTop;
+              // Traverse upwards until an `absolute` element is found or `elem`
+              // becomes null.
+              while (elem = elem.offsetParent && elem.style.position != 'absolute') {
+                  x += elem.offsetLeft;
+                  y += elem.offsetTop;
+              }
+
+              return { left: x, top: y };
+          }
+          // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetTop
+          const bbox = node.getBoundingClientRect();
+          const offset = calcOffset(node);
+          this.show([offset.left + bbox.width, offset.top + bbox.height]);
+        }
+      })
 
       // clear polling timer
       clearInterval(tid);
@@ -1977,6 +2005,8 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
     // mark non-body figures created by knitr chunks as 100% width
     $('.layout-chunk').each(function(i, val) {
       var figures = $(this).find('img, .html-widget');
+      // ignore leaflet img layers (#106)
+      figures = figures.filter(':not(img[class*="leaflet"])')
       if ($(this).attr('data-layout') !== "l-body") {
         figures.css('width', '100%');
       } else {
@@ -1999,7 +2029,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
     // get rid of index.html references in header
     if (window.location.protocol !== "file:") {
       $('.distill-site-header a[href]').each(function(i,val) {
-        $(this).attr('href', $(this).attr('href').replace("index.html", "./"));
+        $(this).attr('href', $(this).attr('href').replace(/^index[.]html/, "./"));
       });
     }
 
@@ -2038,7 +2068,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
   </script>
 
   <!--/radix_placeholder_distill-->
-  <script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+  <script src="site_libs/header-attrs-2.15/header-attrs.js"></script>
   <script src="site_libs/popper-2.6.0/popper.min.js"></script>
   <link href="site_libs/tippy-6.2.7/tippy.css" rel="stylesheet" />
   <link href="site_libs/tippy-6.2.7/tippy-light-border.css" rel="stylesheet" />
@@ -2058,7 +2088,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <!--radix_placeholder_front_matter-->
 
 <script id="distill-front-matter" type="text/json">
-{"title":"Petitioners and supporters","description":"A closer look at the people behind petitions","authors":[{"author":"Sharon Howard","authorURL":"#","affiliation":"&nbsp;","affiliationURL":"#","orcidID":""}]}
+{"title":"QS petitioners and supporters","description":"A closer look at the people behind petitions","authors":[{"author":"Sharon Howard","authorURL":"#","affiliation":"&nbsp;","affiliationURL":"#","orcidID":""}]}
 </script>
 
 <!--/radix_placeholder_front_matter-->
@@ -2079,7 +2109,7 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <!--/radix_placeholder_site_before_body-->
 
 <div class="d-title">
-<h1>Petitioners and supporters</h1>
+<h1>QS petitioners and supporters</h1>
 <!--radix_placeholder_categories-->
 <!--/radix_placeholder_categories-->
 <p><p>A closer look at the people behind petitions</p></p>
@@ -2096,38 +2126,64 @@ code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
 <nav class="l-text toc figcaption" id="TOC">
 <h3>Contents</h3>
 <ul>
-<li><a href="#quarter-sessions-petitioners">Quarter Sessions
+<li><a href="#quarter-sessions-petitioners"
+id="toc-quarter-sessions-petitioners">Quarter Sessions
 petitioners</a></li>
-<li><a href="#making-petitioners-count">Making petitioners count</a>
+<li><a href="#making-petitioners-count"
+id="toc-making-petitioners-count">Making petitioners count</a>
 <ul>
-<li><a href="#counties">counties</a></li>
-<li><a href="#topics">topics</a></li>
-<li><a href="#change-over-time">change over time</a></li>
+<li><a href="#counties" id="toc-counties">counties</a></li>
+<li><a href="#topics" id="toc-topics">topics</a></li>
+<li><a href="#change-over-time" id="toc-change-over-time">change over
+time</a></li>
 </ul></li>
-<li><a href="#gender">Gender</a></li>
-<li><a href="#signing-petitions">Signing petitions</a>
+<li><a href="#gender" id="toc-gender">Gender</a></li>
+<li><a href="#signing-petitions" id="toc-signing-petitions">Signing
+petitions</a>
 <ul>
-<li><a href="#counties-1">counties</a></li>
-<li><a href="#gender-1">gender</a></li>
-<li><a href="#petition-topics">petition topics</a></li>
-<li><a href="#change-over-time-1">change over time</a></li>
+<li><a href="#counties-1" id="toc-counties-1">counties</a></li>
+<li><a href="#gender-1" id="toc-gender-1">gender</a></li>
+<li><a href="#petition-topics" id="toc-petition-topics">petition
+topics</a></li>
+<li><a href="#change-over-time-1" id="toc-change-over-time-1">change
+over time</a></li>
 </ul></li>
 </ul>
 </nav>
+</div>
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
+<div class="layout-chunk" data-layout="l-body">
+
 </div>
 <h2 id="quarter-sessions-petitioners">Quarter Sessions petitioners</h2>
 <p>I’m using data from TPOP’s transcribed QS collections (Cheshire,
 Derbyshire, Staffordshire, Westminster and Worcestershire), as well as
 additional data I’ve collected for a larger sample of untranscribed
-Cheshire files, and slightly less detailed data for Hertfordshire, for a
-total of 2141 petitions.</p>
-<p>What is a petitioner? These petitions have two types of participant.
-Most QS petitions have one or more named <strong>petitioners</strong> at
-the head of the petition (often, “The humble petition of X”), including
-in some cases people on whose behalf the petition was made. Meanwhile,
-<strong>subscribers</strong> are those who signed their names in support
-of the petition, either in the space below the main text or on an
-attached document. In some petition archives,
+Cheshire files, for a total of <code>1728</code> petitions.</p>
+<p>The data is available, with full documentation, from <a
+href="https://doi.org/10.5281/zenodo.7027692">Zenodo</a>.</p>
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
+<p>[<strong>Note</strong>: the first version of this page also included
+date for about 400 Hertfordshire petitions, for which I had less
+detailed information. The Hertfordshire data has not been included in
+TPOP’s public data release and it made only very minor differences to
+the analysis on this page, so I’ve removed it for now. Some statistics
+will differ from the original version.]</p>
+<p><strong>What is a petitioner?</strong> TPOP’s petitions have two main
+types of participant. Most QS petitions have one or more named
+<strong>petitioners</strong> at the head of the petition (often, “The
+humble petition of X”), including in some cases people on whose behalf
+the petition was made (who are counted as petitioners).</p>
+<p>Meanwhile, <strong>subscribers</strong> are those who signed their
+names in support of the petition, either in the space below the main
+text or on an attached document. In some petition archives,
 <strong>collective</strong> petitions, which have <em>only</em>
 subscribers (and might have thousands of them) are the most familiar
 type of petition; this is rather less common in QS records, and it’s
@@ -2137,9 +2193,9 @@ considered here: signatures of clerks, lawyers, judges or other
 officials; and mentions of individulas, especially the subjects of
 petitioners’ complaints, in the body of a petition.]</p>
 <p>Using these definitions, I have some information about individuals
-for 2229 named petitioners and 3531 subscribers (for Herts, I only have
-subscriber counts). Potentially meaningful information which is
-available for at least some petitioners and subscribers:</p>
+for <code>1807</code> named petitioners and <code>3531</code>
+subscribers. Potentially meaningful information which is available for
+at least some petitioners and subscribers:</p>
 <ul>
 <li>nearly all have gender information, on the basis of first names
 (&gt;99% of petitioners and ~95% of subscribers)</li>
@@ -2155,19 +2211,10 @@ moreover, <a
 href="https://www.british-history.ac.uk/petitions/derbyshire/introduction#h3-0002">a
 bit different from the other counties’ archives</a> (in that they did
 not survive in the usual sessional organisation). Many petitions were
-excluded because they couldn’t be dated and there were very uneven
-clusters among those that could). I’ve kept them in the analysis for
-now, but they’re often very anomalous and I’m increasingly doubtful that
-anything can be read into the differences.</p>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
+excluded because they were undateable and there were very uneven
+clusters among those that could be dated). I’ve kept them in the
+analysis for now, but they’re often very anomalous and I’m increasingly
+doubtful that anything can be read into the differences.</p>
 <h2 id="making-petitioners-count">Making petitioners count</h2>
 <div class="layout-chunk" data-layout="l-body">
 
@@ -2175,61 +2222,42 @@ anything can be read into the differences.</p>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
-<p>By far most petitions were initiated by a single person (1430
-petitions, about 67%). For the other 33%, the most noticeable feature is
-that petitions by groups of named petitioners are less common than those
-from collectives (with or without named subscribers): there were 473
-collective petitions (including 88 on behalf of a named person(s)),
-compared to 238 petitions with multiple named petitioners (including 32
-on behalf of someone).</p>
+<div class="layout-chunk" data-layout="l-body">
+
+</div>
+<p>By far most petitions were initiated by a single person
+(<code>1209</code> petitions, about <code>70%</code>). For the other
+<code>30%</code>, the most noticeable feature is that petitions by
+groups of named petitioners are less common than those from collectives
+(with or without named subscribers): there were <code>330</code>
+collective petitions (including <code>39</code> on behalf of a named
+person(s)), compared to <code>189</code> petitions with multiple named
+petitioners (including <code>14</code> on behalf of someone).</p>
 <p>Moreover, the vast majority of named group petitions are by very
-small groups. 168 have just two petitioners, only 23 have more than five
-and just three petitions have more than ten. It seems likely to me that
-group petitions are often the work of close relatives or working
-colleagues. At least 70 group petitions include people who are married
-couples, stated to be relatives (especially siblings) or share surnames.
-There are further group petitions from constables, other local officials
-or business partners, directly concerned with shared responsibilities or
-work.</p>
+small groups. <code>132</code> have just two petitioners, only
+<code>17</code> have more than five and just <code>3</code> petitions
+have more than ten. It seems likely to me that group petitions are often
+the work of close relatives or working colleagues. At least
+<code>60</code> group petitions include people who are married couples,
+are stated to be relatives or share surnames. There are further group
+petitions from constables, other local officials or business partners,
+directly concerned with shared responsibilities or work.</p>
 <div class="layout-chunk" data-layout="l-body">
-<p><img src="petitioners_files/figure-html5/qs_petrs_histogram_petrs_per_petition-1.png" title="histogram showing numbers of named petitioners per petition in the Power of Petitioning Quarter Sessions collections. The largest group of petitioners (about 1500) has only one petitioner." alt="histogram showing numbers of named petitioners per petition in the Power of Petitioning Quarter Sessions collections. The largest group of petitioners (about 1500) has only one petitioner." width="624" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
+<p><img src="petitioners_files/figure-html5/qs_petrs_histogram_petrs_per_petition-1.png" title="histogram showing numbers of named petitioners per petition in the Power of Petitioning Quarter Sessions collections. The largest group of petitioners (about 1200) has only one petitioner." alt="histogram showing numbers of named petitioners per petition in the Power of Petitioning Quarter Sessions collections. The largest group of petitioners (about 1200) has only one petitioner." width="624" /></p>
 </div>
 <p>This shows subscribers only, for petitions that have them, and
 excluding a tiny handful of petitioners with more than 50 subscribers.
 Once again, 1 is the most frequent number of subscribers, but there is a
-much longer tail. Subscribers average 9.75 per petition, cf. 1.27
-petitioners. However, more than a third of collective petitions had no
-signatures at all (168); obtaining signatures was clearly not essential
-to support collective petitioning</p>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
+much longer tail. Subscribers average <code>9.4</code> per petition,
+cf. <code>1.25</code> petitioners. However, more than a third of
+collective petitions had no signatures at all (<code>128</code>);
+obtaining signatures was clearly not essential to support collective
+petitioning</p>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="petitioners_files/figure-html5/qs_petrs_histogram_subscribers_per_petition-1.png" title="histogram of subscribers to petitions in the Power of Petitioning Quarter Sessions collections; as with petitioners the largest single group have just one subscriber, but it is a much wider distribution with significant numbers of petitions having up to 25 subscribers." alt="histogram of subscribers to petitions in the Power of Petitioning Quarter Sessions collections; as with petitioners the largest single group have just one subscriber, but it is a much wider distribution with significant numbers of petitions having up to 25 subscribers." width="624" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
 </div>
 <div class="layout-chunk" data-layout="l-body">
 
@@ -2242,13 +2270,10 @@ across the counties (except for Derbyshire); the main variation here is
 between single and collective, hinting at regional variations in
 petitioning cultures.</p>
 <div class="layout-chunk" data-layout="l-body">
-<p><img src="petitioners_files/figure-html5/qs_petrs_ggmosaic_petitioner_types_county-1.png" title="Mosaic chart of solo, group and collective petitions in the Power of Petitioning Quarter Sessions collections, broken down by county. Most petitions are from a single petitioner, but percentages vary considerably, from about 25% solo in Westminster and Cheshire to 50% solo in Hertfordshire. There is least variation in the percentage from named groups." alt="Mosaic chart of solo, group and collective petitions in the Power of Petitioning Quarter Sessions collections, broken down by county. Most petitions are from a single petitioner, but percentages vary considerably, from about 25% solo in Westminster and Cheshire to 50% solo in Hertfordshire. There is least variation in the percentage from named groups." width="624" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
 
 </div>
 <div class="layout-chunk" data-layout="l-body">
-
+<p><img src="petitioners_files/figure-html5/qs_petrs_ggmosaic_petitioner_types_county-1.png" title="Mosaic chart of solo, group and collective petitions in the Power of Petitioning Quarter Sessions collections, broken down by county. Most petitions are from a single petitioner, but percentages vary, from 78% solo in Westminster to 60% solo in Worcestershire. There is least variation in the percentage from named groups." alt="Mosaic chart of solo, group and collective petitions in the Power of Petitioning Quarter Sessions collections, broken down by county. Most petitions are from a single petitioner, but percentages vary, from 78% solo in Westminster to 60% solo in Worcestershire. There is least variation in the percentage from named groups." width="624" /></p>
 </div>
 <div class="layout-chunk" data-layout="l-body">
 
@@ -2280,7 +2305,7 @@ about military relief, poor relief and child support.</p>
 
 </div>
 <div class="layout-chunk" data-layout="l-body">
-<p><img src="petitioners_files/figure-html5/qs_petrs_lollipop_solo_petitions_percent%20-1.png" title="lollipop chart of the percentage of petitions in the Power of Petitioning Quarter Sessions collections that were by a single petitioner, break down by petition topic. The lowest percentages include complaints about rates/taxes and alehouses, and the highest include poor-relief related petitions and those from debtors." alt="lollipop chart of the percentage of petitions in the Power of Petitioning Quarter Sessions collections that were by a single petitioner, break down by petition topic. The lowest percentages include complaints about rates/taxes and alehouses, and the highest include poor-relief related petitions and those from debtors." width="624" /></p>
+<p><img src="petitioners_files/figure-html5/qs_petrs_lollipop_solo_petitions_percent%20-1.png" title="lollipop chart of the percentage of petitions in the Power of Petitioning Quarter Sessions collections that were by a single petitioner, break down by petition topic. The lowest percentages include complaints about rates/taxes and alehouses, and the highest include poor-/military-relief related petitions and those from debtors." alt="lollipop chart of the percentage of petitions in the Power of Petitioning Quarter Sessions collections that were by a single petitioner, break down by petition topic. The lowest percentages include complaints about rates/taxes and alehouses, and the highest include poor-/military-relief related petitions and those from debtors." width="624" /></p>
 </div>
 <h3 id="change-over-time">change over time</h3>
 <div class="layout-chunk" data-layout="l-body">
@@ -2290,9 +2315,10 @@ about military relief, poor relief and child support.</p>
 far from conclusive. For much of the 17th century the percentage of solo
 petitioners is relatively consistent; fluctuations become more
 noticeable after petition numbers fall from the late 17th century
-onwards. However, the overall 18th-century solo average (73%)
-<em>is</em> higher than that for the 17th century (66%), and the
-late-16th-century solo average is even lower at 52%.</p>
+onwards. However, the overall 18th-century solo average
+(<code>73%</code>) <em>is</em> higher than that for the 17th century
+(<code>69%</code>), and the late-16th-century solo average is even lower
+at <code>49%</code>.</p>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
@@ -2306,22 +2332,19 @@ late-16th-century solo average is even lower at 52%.</p>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
-<p>The majority of petitioners are men; only about 23% of named
-petitioners are female.</p>
+<p>The majority of petitioners are men; only about <code>25%</code> of
+named petitioners are female.</p>
 <div class="layout-chunk" data-layout="l-body">
-<p><img src="petitioners_files/figure-html5/qs_petrs_waffle_gender_petitioners-1.png" title="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections. 1714 petitioners are male, 502 female." alt="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections. 1714 petitioners are male, 502 female." width="624" /></p>
+<p><img src="petitioners_files/figure-html5/qs_petrs_waffle_gender_petitioners-1.png" title="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections. 1356 petitioners are male, 442 female." alt="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections. 1356 petitioners are male, 442 female." width="624" /></p>
 </div>
 <p>But the gender disparity is <em>much</em> greater for subscribers, of
-whom only about <strong>2%</strong> are women.</p>
+whom only about <strong><code>2%</code></strong> are women.</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="petitioners_files/figure-html5/qs_petrs_waffle_gender_subscribers-1.png" title="waffle chart of petition subscribers gender in the Power of Petitioning Quarter Sessions collections: 3313 male, 71 female." alt="waffle chart of petition subscribers gender in the Power of Petitioning Quarter Sessions collections: 3313 male, 71 female." width="624" /></p>
 </div>
 <p>Women are also more likely than men to be solo petitioners.</p>
 <div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-<p><img src="petitioners_files/figure-html5/qs_petrs_waffle_gender_petitioners_pet_type-1.png" title="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections, comparing single vs group petitions. About 77% of female petitioners are solo, and 65% of male petitioners." alt="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections, comparing single vs group petitions. About 77% of female petitioners are solo, and 65% of male petitioners." width="624" /></p>
+<p><img src="petitioners_files/figure-html5/qs_petrs_waffle_gender_petitioners_pet_type-1.png" title="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections, comparing single vs group petitions. About 77% of female petitioners are solo, and 66% of male petitioners." alt="waffle chart of petitioner gender in the Power of Petitioning Quarter Sessions collections, comparing single vs group petitions. About 77% of female petitioners are solo, and 66% of male petitioners." width="624" /></p>
 </div>
 <p>Moreover, there are <em>no</em> all-female petitioner groups larger
 than two people (women also tend to be very much in the minority in
@@ -2338,8 +2361,9 @@ on a household basis, with men signing as heads of households.</p>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
-<p>Comparing gender across counties: Herts and Staffs are noticeably
-lower female % (about 15%) than the other four counties (25-30%).</p>
+<p>Comparing gender across counties: Staffs is noticeably lower female %
+(about <code>15%</code>) than the other four counties
+(<code>25-30%</code>).</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="petitioners_files/figure-html5/qs_petrs_waffle_gender_petitioners_county-1.png" title="waffle charts of petitioner gender, breakdown by county." alt="waffle charts of petitioner gender, breakdown by county." width="624" /></p>
 </div>
@@ -2361,10 +2385,10 @@ a signature in a petition? It might not be the same as in witness
 examinations or other legal documents (for which signatures usually
 <em>were</em> required). So I’m curious as to whether there are any
 patterns of interest.</p>
-<p>I don’t have any signatures data for Herts and I only have partial
-data for the untranscribed Cheshire petitions, so they’re excluded from
-this section. Overall, there’s some kind of signature data for 24% of
-petitioners in the transcribed collections.</p>
+<p>I only have partial data for the untranscribed Cheshire petitions, so
+they’re excluded from this section. Overall, there’s some kind of
+signature for <code>24%</code> of petitioners in the transcribed
+collections.</p>
 <p>In transcriptions, signatures were also marked up for “type” of
 signature:</p>
 <ul>
@@ -2389,21 +2413,22 @@ on my recollection of other types of document in early modern court
 archives such as witness examinations. (Though I wouldn’t guarantee that
 my memory is reliable, and I’d need some data to verify this.)</p>
 <p>Moreover, as can be seen, even when combined marks and initials are
-not very common (only 2% of all petitioners signed this way, or 12% of
-signatures excluding scribal) - considerably less common, I suspect,
-than in witness examinations even though I might expect petitioners to
-be of fairly similar social status to witnesses.</p>
+not very common (only <code>2%</code> of all petitioners signed this
+way, or <code>12%</code> of signatures excluding scribal) - considerably
+less common, I suspect, than in witness examinations even though I might
+expect petitioners to be of fairly similar social status to
+witnesses.</p>
 <div class="layout-chunk" data-layout="l-body">
 
 </div>
 <div class="layout-chunk" data-layout="l-body">
-<p><img src="petitioners_files/figure-html5/qs_petrs_waffle_petitioners_signatures-1.png" title="waffle chart of petitioner signatures in the Power of Petitioning Quarter Sessions collections. The majority (1125) did not sign their petitions and very few who did sign used a mark (31)." alt="waffle chart of petitioner signatures in the Power of Petitioning Quarter Sessions collections. The majority (1125) did not sign their petitions and very few who did sign used a mark (31)." width="624" /></p>
+<p><img src="petitioners_files/figure-html5/qs_petrs_waffle_petitioners_signatures-1.png" title="waffle chart of petitioner signatures in the Power of Petitioning Quarter Sessions collections. The majority did not sign their petitions and very few who did sign used a mark." alt="waffle chart of petitioner signatures in the Power of Petitioning Quarter Sessions collections. The majority did not sign their petitions and very few who did sign used a mark." width="624" /></p>
 </div>
 <p>The same for subscribers, and here (since there are no “[none]” to
 worry about) the low percentage of supporters signing by mark/initials
-is really striking, at about 4% (excluding scribal). This carries some
-clear implications about the social status of subscribers, and
-potentially these rates could be compared to data from studies of
+is really striking, at about <code>4%</code> (excluding scribal). This
+carries some clear implications about the social status of subscribers,
+and potentially these rates could be compared to data from studies of
 literacy.</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="petitioners_files/figure-html5/qs_petrs_waffle_subscribers_signatures-1.png" title="waffle chart of subscriber signatures in the Power of Petitioning Quarter Sessions collections. " alt="waffle chart of subscriber signatures in the Power of Petitioning Quarter Sessions collections. " width="624" /></p>
@@ -2418,8 +2443,8 @@ striking. Worcestershire meanwhile has a considerably higher % of marks
 than the other counties.</p>
 <p>Westminster has by some distance the highest % of petitioner signing
 their names, and (notwithstanding my caveats) that probably really does
-reflect higher levels of literacy in London. But it’s highly unlikely
-that literacy was significantly lower in Cheshire than in neighbouring
+reflect higher levels of literacy in London. But it seems less likely
+that literacy was substantially lower in Cheshire than in neighbouring
 Staffordshire and Worcestershire, so why are the % so much lower?</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="petitioners_files/figure-html5/qs_petrs_waffle_petitioners_signatures_county-1.png" title="waffle charts of petitioner signatures in the Power of Petitioning Quarter Sessions collections, comparing by county." alt="waffle charts of petitioner signatures in the Power of Petitioning Quarter Sessions collections, comparing by county." width="624" /></p>
@@ -2451,16 +2476,17 @@ obvious relationship between signing and the size of a topic.)</p>
 </div>
 <p>Here, however, there <em>is</em> a strong relationship between the
 popularity of petitioning and the % of petitioners signing their
-petitions, as well as the obvious change over time. (51 Westminster
-petitions couldn’t be dated to within a decade. However, all were from
-c.1620-1640 and none were signed by the petitioners, so they’d make very
-little difference to this picture.)</p>
+petitions, as well as the obvious change over time. (<code>51</code>
+Westminster petitions couldn’t be dated to within a decade. However, all
+were from c.1620-1640 and none were signed by the petitioners, so they’d
+make very little difference to this picture.)</p>
 <p>Between the 1610s and 1670s and in the 1690s (the rise in the 1680s
-is intriguing), signing rates never rose above 10% of petitioners. Also,
-even though numbers are relatively small, the rate seems consistently
-much higher in the late 16th century, around 25-30%. From 1700 signing
-rates rise dramatically again; from the 1710s they never fall below 50%
-and peak in the 90s in mid century.</p>
+is intriguing), signing rates never rose above <code>10%</code> of
+petitioners. Also, even though numbers are relatively small, the rate
+seems consistently much higher in the late 16th century, around
+<code>25-30%</code>. From 1700 signing rates rise dramatically again;
+from the 1710s they never fall below <code>50%</code> and peak in the
+90s in mid century.</p>
 <p>(It’s also worth remembering that petitioning declined much more
 sharply in Cheshire after the 1680s than in the other counties.)</p>
 <div class="layout-chunk" data-layout="l-body">
@@ -2475,18 +2501,6 @@ influence of political revolution on collective activity in much more
 mundane areas of life?</p>
 <div class="layout-chunk" data-layout="l-body">
 <p><img src="petitioners_files/figure-html5/qs_petrs_scatter_petitions_with_subscribers_decade%20-1.png" title="scatter chart of the percentage of petitions with subscribers in the Power of Petitioning Quarter Sessions collections, by decade between late 16th and late 18th century." alt="scatter chart of the percentage of petitions with subscribers in the Power of Petitioning Quarter Sessions collections, by decade between late 16th and late 18th century." width="624" /></p>
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
-</div>
-<div class="layout-chunk" data-layout="l-body">
-
 </div>
 <div class="layout-chunk" data-layout="l-body">
 

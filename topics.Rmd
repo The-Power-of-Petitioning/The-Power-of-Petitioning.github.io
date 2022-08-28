@@ -21,6 +21,11 @@ There is a brief analysis of topics for each county in the introductions to the 
 
 ## The data
 
+The data is available, with full documentation, from [Zenodo](https://doi.org/10.5281/zenodo.7027692).
+
+[**Note**: the first version of this page also included about 400 Hertfordshire petitions, for which I had less detailed information. The Hertfordshire data has not been included in TPOP's public data release and it made only minor differences to the analysis on this page, so I've removed it for now. Some statistics will differ from the original version.]
+
+
 ### The counties
 
 - [Cheshire](https://www.british-history.ac.uk/petitions/cheshire) 
@@ -30,9 +35,6 @@ There is a brief analysis of topics for each county in the introductions to the 
   - transcriptions 1632-1770
   - every surviving petition that could be dated to within a decade [94 petitions]
   - NB however, many surviving petitions can't be dated and have been excluded from the collection
-- Hertfordshire 
-  - metadata only 1588-1698
-  - (I think) every surviving petition, but 16th-17th century only [413 petitions]
 - [Staffordshire](https://www.british-history.ac.uk/petitions/staffordshire/introduction)
   - transcriptions 1589-1799
   - sample: all surviving petitions from one year per decade [239 petitions]
@@ -42,6 +44,13 @@ There is a brief analysis of topics for each county in the introductions to the 
 - [Worcestershire](https://www.british-history.ac.uk/petitions/worcs-quarter-sessions/introduction) 
   - transcriptions 1592-1797
   - every surviving petition (except a few early illegible/damaged ones) [360 petitions]
+
+```{r}
+# - Hertfordshire 
+#   - metadata only 1588-1698
+#   - (I think) every surviving petition, but 16th-17th century only [413 petitions]
+```
+
 
 ### The topics
 
@@ -69,10 +78,11 @@ Two counties, Cheshire and Staffordshire, have been sampled by the simple method
 
 ```{r message=FALSE}
 # includes packages atm
-#source(here::here("_data", "data.R"))
 
+## update with public data which excludes Herts - was that in before...?
+source(here::here( "data.R"))
 
-source(here::here("_data.R"))
+#source(here::here("_data.R"))
 
 # viz, ggplot extensions etc
 library(ggthemes)
@@ -318,7 +328,7 @@ qs_petitions_combined %>%
 
 (white tiles represent 0s)
 
-This heatmap is an example of how stripping away subtlety can be useful to draw attention to particularly strong patterns. In this case, the "hot" cluster of petitions for military pensions in the 1650s dramatically highlights one legacy of the Civil Wars. But it indicates that a number of other topics were *also* at or near peaking around the middle of the 17th century. The heatmap also highlights the sparsity of petitions in many topics after 1700, except for the new topics of dissenting worship and imprisoned debtors.
+This heatmap is an example of how stripping away subtlety can be useful to draw attention to particularly strong patterns. In this case, the "warm" cluster of petitions for military pensions in the 1650s dramatically highlights a legacy of the Civil Wars. But it indicates that a number of other topics were *also* at or near peaking around the middle of the 17th century. The heatmap also highlights the sparsity of petitions in many topics after 1700, except for the new topics of dissenting worship and imprisoned debtors.
 
 ```{r topics_decades_pc_heatmap, fig.alt='heatmap of QS petition topics per decade, using percentages of topic rather than numbers; useful to draw attention to the most exceptional topic-decades.'}
 # heatmap of topics
@@ -343,60 +353,8 @@ qs_petitions_combined %>%
 ```
 
 
-```{r}
-# ??????
-# qs_petitions_combined %>% 
-#   filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors"), !is.na(decade), decade < 1730) %>%
-#   count(decade, topic) %>%
-#   mutate(topic = fct_rev(topic)) %>%
-# #  ggplot(aes(x=decade, y=p)) 
-#   ggplot(aes(x = decade, y = topic, fill=topic, group=topic, height=stat(density))) +
-#   #geom_density_ridges(alpha=0.5, stat="density", scale=0.95) + 
-#   geom_density_ridges(stat = "binline", bins = 40, scale = 0.95, draw_baseline = FALSE, alpha=0.7) +
-#   scale_y_discrete(expand = c(0, 0)) +     # will generally have to set the `expand` option
-#   scale_x_continuous(expand = c(0, 0) ) + #, breaks=seq(1575,1725,25), limits=c(1575,1750)) +   # for both axes to remove unneeded padding 
-#   coord_cartesian(clip = "off") + #clip = "off" to avoid clipping of the very top of the top ridgeline
-#   #theme_ridges() +
-#   theme_minimal(base_size = 12) + 
-#   theme(axis.text.y = element_text(vjust = 0)) +
-#   theme(legend.position = "none")
-```
 
 
-```{r}
-### Westminster hmmm
-
-#The 44 Westminster petitions that can't be dated to within a decade - and have therefore been excluded from all the charts above - *can* all be approximately dated to between 1620 and 1640, and topics are very unevenly distributed. 
-
-# qs_petitions_combined %>%
-#   filter(county=="Westmr") %>%
-#   select(decade, topic) %>%
-#   mutate(dated_decade = if_else(is.na(decade), "no", "yes")) %>%
-#   #naniar::bind_shadow(only_miss = TRUE) %>% #count(decade_NA)
-#   count(topic, dated_decade) %>% 
-#   mutate(topic = fct_rev(topic)) %>%
-#   ggplot(aes(topic, n, fill=dated_decade)) +
-#   geom_col(position = "fill") +
-#   scale_fill_tableau() +
-#   scale_y_continuous(labels = percent_format()) +
-#   coord_flip() +
-#   labs(x=NULL, y="% of petitions in topic", title="The problem with Westminster", fill="dated\ndecade")
-# 
-# # the rest
-# qs_petitions_combined %>%
-#   filter(county!="Westmr") %>%
-#   select(decade, topic) %>%
-#   mutate(dated_decade = if_else(decade<1640, "no", "yes")) %>%
-#   #naniar::bind_shadow(only_miss = TRUE) %>% #count(decade_NA)
-#   count(topic, dated_decade) %>% 
-#   mutate(topic = fct_rev(topic)) %>%
-#   ggplot(aes(topic, n, fill=dated_decade)) +
-#   geom_col(position = "fill") +
-#   scale_fill_tableau() +
-#   scale_y_continuous(labels = percent_format()) +
-#   coord_flip() +
-#   labs(x=NULL, y="% of petitions in topic", title="The problem with Westminster", fill="1620-1639")
-```
 
 
 ## Gender
@@ -425,7 +383,7 @@ qs_petitions_combined %>%
 
 The mosaic highlights the *most important* relationships more clearly.
 
-Eg, female petitioners are strongly positively associated with poor relief and paternity, while the negative associations with alehouse, cottage, officeholding are somewhat weaker. The strongest association for male petitions is the negative one with paternity petitions. For collective petitions it's all about rates (and it is common for "inhabitants" of a township or parish to group together to complain about taxes), but they're less likely to be litigation-related.
+Eg, female petitioners are strongly positively associated with poor relief and paternity, while the negative associations with alehouse, cottage, officeholding are somewhat weaker. Stronger associations for male petitions are negative ones with paternity and poor relief petitions. For collective petitions it's all about rates (and it is common for "inhabitants" of a township or parish to group together to complain about taxes), but they're less likely to be litigation-related.
 
 Conversely, eg, although you can see in the bar chart a lower female than male % for military petitions, the difference is too small to register as *statistically* significant.
 
@@ -466,7 +424,7 @@ mosaic(~gender + topic,
 
 ### heatmap
 
-The strong association between mixed gender petitions and litigation stands out even more here than in the mosaic. It's an intriguing one, even allowing for the small size of the group.
+The strong association between mixed gender petitions and litigation stands out here too. It's an intriguing one, even allowing for the small size of the group.
 
 
 ```{r topics_gender_heatmap, fig.alt='heatmap of QS petition topics by gender, using percentage of gender rather than numbers. Intriguing hotspot for mixed gender/litigation petitions.'}

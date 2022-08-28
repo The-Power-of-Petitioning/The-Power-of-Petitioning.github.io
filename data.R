@@ -7,7 +7,6 @@ library(readxl) # for reading xlsx. there is also a writexl...
 library(readODS)
 
 # databases
-# library(RMariaDB)
 library(RSQLite)
 
 
@@ -28,82 +27,83 @@ library(tidytext)
 library(tidyverse)
 
 
-# Create a connection to local db
-csdb_conn <- dbConnect(RSQLite::SQLite(), "~/my_docs/work/petitions/cheshire/case_study/tpop_case_study.db")
-# updated the db 211230 with the September stuff.
+## this will need a load of tidying up before sharing!
 
+
+# Create a connection to local db
+db_conn <- dbConnect(SQLite(), here::here("data", "tpop_v1_202208.db"))
 
 ## petitions metadata ####
 
-qs_ches_sqlite <-
-  # use sept update instead of full original
-  # in fact this isn't just bho but never mind...
-  dbGetQuery(csdb_conn, "select * from bho_qs_ches_petitions_metadata")
+# qs_ches_sqlite <-
+#   # use sept update instead of full original
+#   # in fact this isn't just bho but never mind...
+#   dbGetQuery(db_conn, "select * from bho_qs_ches_petitions_metadata")
 
-# this is the previous "level1" without ches
+# all bho qs petitions
 # updated version with responses... should otherwise be the same
 qs_level1_sqlite <-
-  dbGetQuery(csdb_conn, "select * from bho_qs_petitions_metadata")
+  dbGetQuery(db_conn, "select * from QS_petitions")
 
 # SE petitions instead of now superseded add_petitions. no longer includes somerset but includes middx.
 # will usually need to drop Essex, depending on what you're doing
 # middx petitions have no petition type ????
-qs_level2_sqlite <-
-  dbGetQuery(csdb_conn, "select * from qs_se_petitions_metadata")
+# qs_level2_sqlite <-
+#   dbGetQuery(csdb_conn, "select * from qs_se_petitions_metadata")
 
-qs_ches_petitions <-
-  qs_ches_sqlite  %>%
-  mutate(county="Ches") %>%
-  mutate(year_parse = year, year_strict=year) %>%
-  mutate(decade = year - (year %% 10) ) %>%
-  relocate(decade, .after = year)
+# qs_ches_petitions <-
+#   qs_ches_sqlite  %>%
+#   mutate(county="Ches") %>%
+#   mutate(year_parse = year, year_strict=year) %>%
+#   mutate(decade = year - (year %% 10) ) %>%
+#   relocate(decade, .after = year)
 
 
-# rogue "rate" topic in herts
-# no NA year now
-# NAs before were all somerset allegedly (71)
-qs_level2_petitions <-
-  qs_level2_sqlite  %>%
-  mutate(decade = year - (year %% 10) ) %>%
-  mutate(year_parse = year, year_strict=year) %>%
-  rename(petition_gender=pet_gender) %>%
-  # afaict description and abstract are the same info but with diff names
-  mutate(abstract=case_when(
-    is.na(abstract) ~ description,
-    TRUE ~ abstract
-  )) %>% 
-  mutate(topic = case_when(
-    topic=="rate" ~ "rates",
-    TRUE ~ topic
-  )) %>%
-  select(-description, -text, -file, -id, -request)
-# is reference in middx unique? yes. so id isn't needed, whatever it was for.
+# # rogue "rate" topic in herts
+# # no NA year now
+# # NAs before were all somerset allegedly (71)
+# qs_level2_petitions <-
+#   qs_level2_sqlite  %>%
+#   mutate(decade = year - (year %% 10) ) %>%
+#   mutate(year_parse = year, year_strict=year) %>%
+#   rename(petition_gender=pet_gender) %>%
+#   # afaict description and abstract are the same info but with diff names
+#   mutate(abstract=case_when(
+#     is.na(abstract) ~ description,
+#     TRUE ~ abstract
+#   )) %>% 
+#   mutate(topic = case_when(
+#     topic=="rate" ~ "rates",
+#     TRUE ~ topic
+#   )) %>%
+#   select(-description, -text, -file, -id, -request)
+# # is reference in middx unique? yes. so id isn't needed, whatever it was for.
 
 
 # no na documentyear. 44 NA year after proc, as expected. so ok
 qs_level1_petitions <-
   qs_level1_sqlite %>%
-  rename(petition_gender=pet_gender) %>%
+  mutate(year_orig = year) %>%
   mutate(year = case_when(
-    documentyear=="1620-1621" ~ 1620,
-    documentyear=="1620-1628" ~ 1625,
-    documentyear=="1634-1639" ~ 1635,
-    documentyear=="1636-1640" ~ 1638,
-    documentyear=="1639-1640" ~ 1640,
-    documentyear %in% c("1649-1659", "1650-1659", "n.d. [1650s]") ~ 1655,
-    documentyear=="1680-1689" ~ 1685,
-    TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""), na="[1620-1640]")
+    year=="1620-1621" ~ 1620,
+    year=="1620-1628" ~ 1625,
+    year=="1634-1639" ~ 1635,
+    year=="1636-1640" ~ 1638,
+    year=="1639-1640" ~ 1640,
+    year %in% c("1649-1659", "1650-1659", "n.d. [1650s]") ~ 1655,
+    year=="1680-1689" ~ 1685,
+    TRUE ~ parse_number(str_replace(year, "n.d. \\[", ""), na="[1620-1640]")
   ))  %>%
-  mutate(decade = year - (year %% 10) ) %>%
+  mutate(decade = year - (year %% 10) )
+
   # this will only allow exact years
-  mutate(year_strict = case_when(
-    str_detect(documentyear, "\\D") ~ NA_real_,
-    TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""))
-  ))  %>%
+  # mutate(year_strict = case_when(
+  #   str_detect(documentyear, "\\D") ~ NA_real_,
+  #   TRUE ~ parse_number(str_replace(documentyear, "n.d. \\[", ""))
+  # ))  %>%
   # the opposite extreme: gives *everything* it can a year, using the first year if there's a range, if you want to restrict eg to 1580-1720 but exact dates within the range don't matter
-  mutate(year_parse = parse_number(str_replace(documentyear, "n.d. \\[", ""))) %>%
-  relocate(year, decade, response_cat, .after = petition_gender) %>%
-  relocate(documentdate, documentyear, .after = comments)
+  #mutate(year_loose = parse_number(str_replace(documentyear, "n.d. \\[", ""))) %>%
+  #relocate(documentdate, documentyear, .after = comments)
 
 
 # apart from name of object, this should be a simple replacement for all level 2
@@ -112,11 +112,12 @@ qs_level1_petitions <-
 # NA gender = collective? all except one multiple
 # 191 petitions in level 2 have no petition type. can't remember which county this is! but not Herts.
 qs_petitions_combined <-
-  bind_rows(
-    qs_ches_petitions,
-    qs_level1_petitions %>% mutate(transcribed="y"),
-    qs_level2_petitions %>% filter(county=="Herts") %>% mutate(transcribed="n")
-  ) %>%
+  # bind_rows(
+  #   qs_ches_petitions,
+  #   qs_level1_petitions %>% mutate(transcribed="y"),
+  #   qs_level2_petitions %>% filter(county=="Herts") %>% mutate(transcribed="n")
+  # ) %>%
+  qs_level1_petitions %>%
   mutate(gender = case_when(
     petition_gender=="f" ~ "female", 
     petition_gender=="fm" ~ "mixed", 
@@ -128,13 +129,19 @@ qs_petitions_combined <-
     str_detect(petition_type, "collective") ~ "collective",
     str_detect(petition_type, "multiple") ~ "group"
   )) %>%
-  # ok i think you do need to fix spaces in petition_type
+  # ok i think you do need to fix spaces in petition_type ????? check if this is still an issue!
   mutate(petition_type = str_trim(str_replace_all(petition_type, "  +", " "))) %>%
-  mutate(petition_id = paste(county, reference, doc_no, sep="_")) %>%
-  select(reference, doc_no, ll_img, county, petition_id, decade, topic, subtopic, petition_type, petition_type_s, gender, named_petrs, subscribers, response_cat, year, year_strict, year_parse, petitioner, abstract, transcribed) %>%
+  mutate(petition_id = paste(county, petition_id, sep="_")) %>% # don't thikn you actually need this for it to be unique...? unless you do add herts.
+  #select(reference, doc_no, ll_img, county, petition_id, decade, topic, subtopic, petition_type, petition_type_s, gender, named_petrs, subscribers, response_cat, year, year_strict, year_parse, petitioner, abstract, transcribed) %>%
   rowid_to_column("all_id")
 
 
+
+
+qs_petitioners_sqlite <-
+  dbGetQuery(db_conn, "select * from QS_petitioners")
+
+dbDisconnect(db_conn)
 
 ## notes...
 
