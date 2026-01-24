@@ -1,0 +1,15 @@
+---
+title: "Themes"
+listing:
+  - id: themes-grid
+    contents: 
+    - "*.qmd"
+    #max-items: 10
+    type: default
+    fields: [title, description, image]
+    categories: true
+    sort-ui: false
+    filter-ui: false
+toc: false
+---
+

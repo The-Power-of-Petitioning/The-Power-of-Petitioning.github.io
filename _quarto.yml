@@ -1,0 +1,33 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Exploring The Power of Petitioning"
+  #site-url: https://the-power-of-petitioning.github.io/
+  favicon: favicon.png
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: themes/index.qmd
+        text: Themes
+
+format:
+  html:
+    theme:
+      - sandstone
+    linkcolor: rgb(41, 125, 3)
+    css: styles.css
+    toc: true
+
+
+
+draft-mode: unlinked
+
+
+date-format: "D MMMM YYYY"
+
+
+freeze: auto
+

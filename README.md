@@ -1,2 +1,2 @@
 # The-Power-of-Petitioning.github.io
-distill website for tpop
+quarto website for tpop

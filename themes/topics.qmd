@@ -1,0 +1,452 @@
+---
+title: "QS petition topics"
+description: "What were petitions about?"
+author: Sharon Howard 
+categories: 
+  - QS
+  - topics
+execute: 
+  warning: false
+  message: false
+  echo: false 
+---
+
+
+
+
+## Quarter Sessions petitions topics and themes
+
+The Power of Petitioning project team manually assigned **broad topics** to each of the transcribed collections, as well as a number of other collections for which we had rich enough metadata. I'll focus for now on Quarter Sessions because they have their own set of topics and the project tried (as far as possible) to apply them consistently to enable comparison of the counties. [I'll try to do a later update for the State Papers and House of Lords collections, but the topics for these are quite different.]
+
+There is a brief analysis of topics for each county in the introductions to the [British History Online editions](https://www.british-history.ac.uk/search/series/petitions), so I'll focus more on an overview and comparisons here. 
+
+
+## The data
+
+The data is available, with full documentation, from [Zenodo](https://doi.org/10.5281/zenodo.7027692).
+
+[**Note**: the first version of this page also included about 400 Hertfordshire petitions, for which I had less detailed information. The Hertfordshire data has not been included in TPOP's public data release and it made only minor differences to the analysis on this page, so I've removed it for now. Some statistics will differ from the original version.]
+
+
+### The counties
+
+- [Cheshire](https://www.british-history.ac.uk/petitions/cheshire) 
+  - transcriptions / metadata 1573-1798
+  - all pre-1600 petitions, then a sample of all surviving petitions for 1 year in every decade [613 petitions]
+- [Derbyshire](https://www.british-history.ac.uk/petitions/derbyshire/introduction)
+  - transcriptions 1632-1770
+  - every surviving petition that could be dated to within a decade [94 petitions]
+  - NB however, many surviving petitions can't be dated and have been excluded from the collection
+- [Staffordshire](https://www.british-history.ac.uk/petitions/staffordshire/introduction)
+  - transcriptions 1589-1799
+  - sample: all surviving petitions from one year per decade [239 petitions]
+- [Westminster](https://www.british-history.ac.uk/petitions/westminster/introduction) 
+  - transcriptions 1620-1799
+  - every surviving petition [424 petitions]
+- [Worcestershire](https://www.british-history.ac.uk/petitions/worcs-quarter-sessions/introduction) 
+  - transcriptions 1592-1797
+  - every surviving petition (except a few early illegible/damaged ones) [360 petitions]
+
+```{r}
+# - Hertfordshire 
+#   - metadata only 1588-1698
+#   - (I think) every surviving petition, but 16th-17th century only [413 petitions]
+```
+
+
+### The topics
+
+- **alehouse**: all about licences (including victualling houses, inns, taverns)
+- **charitable brief**: requests for certificates to allow the petitioners to collect charity in response to personal calamities such as house fires
+- **cottage**: licences to [build cottages](https://en.wikipedia.org/wiki/Erection_of_Cottages_Act_1588) on 'waste' lands
+- **dissenting worship**: concerning applications for licences to establish places of worship (following the [Toleration Act of 1689](https://www.british-history.ac.uk/statutes-realm/vol6/pp74-76))
+- **employment**: service, apprenticeship, wages
+- **imprisoned debtors**: applications for release from [imprisoned debtors](https://www.parliament.uk/about/living-heritage/transformingsociety/laworder/policeprisons/case-study/introduction/debtors-relief-acts/) (18th century)
+- **litigation**: broad category for uses of and encounters with the legal/criminal justice system (eg request for prosecution, request for mercy or discharge)
+- **military relief**: requests for pensions (soldier, sailor, widow/wife)
+- **officeholding**: mostly to do with constables (eg trying to get out of serving, or seeking compensation for expenses)
+- **paternity**: financial support for children; mostly to do with bastardy, obtaining/avoiding maintenance from father/husband
+- **poor relief**: relief or removal under the poor law system (often complaints that local overseers were refusing to pay relief to which the petitioner was entitled, or parish appeals about removals)
+- **rates**: mainly attempting to impose or avoid payment of various communal rates, levies or taxes
+- **other**: anything that didn't fit into the categories above
+
+
+### caveats
+
+The chronological distribution of petitions in several counties is very lumpy, and it's hard to be sure in some cases whether this reflects actual petitioning trends, random losses or other less random factors, and whether the surviving petitions are representative. Derbyshire is particularly difficult (IIRC, more petitions were excluded than included). Westminster is also problematic; 44 petitions couldn't be dated to within a single decade (though all were within the period 1620-1640), and these were *not* evenly distributed across topics.
+
+Two counties, Cheshire and Staffordshire, have been sampled by the simple method of taking one year in ten. This is unlikely to be a significant issue for overviews and comparisons of gender. But it's much more awkward for any attempt at chronological analysis. I've ignored that here and simply counted by decade. But I'll probably need to think much harder about this before long.
+
+
+```{r}
+# includes packages atm
+
+source(here::here("_R/data.R"))
+
+# viz, ggplot extensions etc
+library(ggthemes)
+theme_set(theme_minimal()) # set preferred ggplot theme 
+
+library(vcd) 
+
+### devtools::install_github("hrbrmstr/waffle")
+library(waffle)
+library(hrbrthemes)
+
+library(ggridges)
+##https://github.com/wilkox/treemapify
+library(treemapify)
+
+library(patchwork)
+
+library(RColorBrewer)
+# nb.cols <- 18
+# mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+# scale_fill_manual(values = mycolors) +
+
+
+#complete control of colours, use in ggplot: scale_*_manual(values=topic_colours)
+topic_colours <- c("alehouse" = "#a6cee3",	"charitable brief" = "#1f78b4",	"charitable" = "#1f78b4",	"cottage" =	"#b2df8a", "dissenting worship" =	"#33a02c", "dissenters"="#33a02c", "employment" =	"#ff7f00", "imprisoned debtors" =	"#fdbf6f", "debtors" =	"#fdbf6f", "litigation" = "#e31a1c", "military relief" = "#fb9a99", "officeholding" =	"#ffed6f", "other" = "#8c510a", "paternity"	=	"#cab2d6", "poor relief" = "#6a3d9a", "rates" = "#80cdc1")
+
+#a way to add extra colours
+#colors15 <- colorRampPalette(brewer.pal(12, "Paired"))(15)
+# renaming final labels within ggplot with labels
+#scale_x_discrete("Cut", labels = c("Fair" = "F","Good" = "G", "Very Good" = "VG","Perfect" = "P","Ideal" = "I"))
+```
+
+
+
+## Overview of topics
+
+Which were the most popular topics of QS petitions?
+
+```{r topics_overview_bar}
+#| fig-alt: "Horizontal bar chart of petition topics in the Power of Petitioning Quarter Sessions collections, in descending order of frequency; litigation and poor relief are the most popular topics by some distance."
+
+##alt text: chart type of type of data where reason for including chart
+# two levels all ####
+#i think this works best for overall view of topics; treemap is pretty but less clear....
+qs_petitions_combined |>
+  count(topic, sort=TRUE) |>
+  mutate(topic=fct_reorder(topic, n)) |>
+  ggplot(aes(y=n, x=topic, fill=topic)) +
+  geom_col() +
+  scale_fill_manual(values = topic_colours)  +
+  coord_flip() +
+  theme(legend.position = "none") +
+  labs(x=NULL, y="number of petitions", title="Popularity of topics in TPOP QS petitions")
+```
+
+
+
+
+
+## Comparing counties: three views
+
+### a bar chart
+
+The colour coding here is not strictly essential but I find it helpful for comparing the different rankings of topics. It can be seen that the counties cluster into two groups with *either* litigation or poor relief as the most frequent topic of petitioning. Cheshire is unusual for the level of cottage petitions. Westminster has no cottage petitions because cities were exempted from the relevant legislation; more interesting is the frequency of petitioning about employment and infrequency of poor relief petitions.
+
+```{r topics_counties_bar}
+#| fig-alt: "horizontal bar chart of QS petition topics, faceted by county; litigation is top topic in Ches, Staffs and Westmr, poor relief top in Derbyshire, Herts and Worcs."
+
+qs_petitions_combined |>
+  count(topic, county, sort=TRUE) |>
+#   # topic2 for the x axis, keep topic as it is for fill
+  mutate(topic2 = reorder_within(topic, n, county)) |>
+  ggplot(aes(y=n, x=topic2, fill=topic, group=county)) +
+  geom_col() +
+  facet_wrap(~county, scales = "free") +
+  coord_flip() +
+  scale_fill_manual(values = topic_colours)  +
+  scale_x_reordered() +
+  theme(legend.position = "none") +
+  labs(x=NULL, y="number of petitions", title="QS petitions topics, by county")
+```
+
+### another bar chart
+
+But switching round the comparisons. (For convenience, "other" is excluded this time.) Suggests that within most topics there aren't massive differences between counties; notable exceptions = Westminster/employment and Derbyshire/poor relief.
+
+```{r topics_county_topics_pc_bar}
+#| fig-alt: "Faceted bar chart of QS petition topics, comparing topic percentage for each county."
+
+qs_petitions_combined |>
+  filter(!topic %in% c("other")) |>
+  count(topic, county, sort=TRUE) |>
+  group_by(county) |>
+  mutate(p = n/sum(n)*100) |>
+  ungroup() |>
+  ggplot(aes(x=county, y=p, fill=county)) +
+  geom_col() +
+  facet_wrap(~topic, nrow = 2) +
+  scale_fill_colorblind() +
+  theme(axis.text.x=element_blank(), legend.position = "bottom") +
+  labs(x=NULL, y="% of county's petitions")
+
+```
+
+
+### mosaic plot
+
+These are less common than bar charts, so a bit of explanation:
+
+- the relative size of each county is indicated by the height of the row
+- the size of each topic is indicated by the width of the rectangles. (When there are this many categories, it can become difficult to line up each rectangle with its label; I think this is hitting the limits really, even though I've excluded the two smallest categories and "other".)
+
+So you can compare the relative size of each topic for each county visually. But the colour coding takes things further.
+
+- blue means that the topic is (statistically) *over*-represented
+- red means that it's *under*-represented
+- grey is neutral
+- the darker the shading, the stronger the statistical significance
+- the lines with a red circle represent 0s
+
+(The statistical measure is [Pearson's Chi-squared Test](https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test).)
+
+This method can produce some surprises. Eg, litigation in Cheshire looks big, and it *is* the largest single county-topic combination with 177 petitions. But it turns out that's slightly deceptive, because Cheshire just has so many petitions. (In the second bar chart, you can also see that two counties have a higher % of litigation petitions.) It does, however, confirm the impression that cottage petitions are unusually popular in Cheshire.
+
+```{r  topics_counties_mosaic}
+#| fig.alt: "mosaic plot of QS petition topics by county; highlighting significat over- or under-representation of topics."
+
+county_topic_tab <-
+with(
+  qs_petitions_combined |>
+  mutate(county = str_to_title(county)) |>
+  mutate(topic = case_when(
+    topic %in% c("dissenting worship", "imprisoned debtors", "other") ~ NA_character_,
+    TRUE ~ topic
+  )) |>
+  filter(!is.na(topic) #, between(year_parse, 1580, 1720)
+         )  ,
+  table(topic, county)
+)
+
+mosaic(~county + topic, 
+  county_topic_tab, shade = TRUE , legend=FALSE,
+       main="QS petition topics, by county",
+       rot_labels = c(left = 0, top=90), 
+       offset_varnames = c(left = 1, top=2.5), # space categories-varname, i think
+       offset_labels = c(left = 1, top=1.5),
+      margins = c(4.5, 0, 2, 1),
+  #margin = unit(4, "lines"),
+       #spacing = spacing_increase(start = unit(0.2, "lines"), rate = 2) , 
+       labeling_args = list(
+         abbreviate = c(topic = 11),
+         tl_labels = TRUE, tl_varnames = FALSE,
+         gp_labels = gpar(fontsize=10)
+        )
+       )
+# https://twitter.com/sharon_howard/status/1221846576227848198  [2020/01/27]
+# original was 1580-1720 only
+# at this mosaic chart for topics of #PowerOfPetitioning QS petitions. Highlights relative proportions (blue=over-represented, red=under-repd). Eg Cheshire has a low proportion of poor relief petitions and high proportion of cottage petitions relative to the other counties.
+```
+
+
+
+
+## Change over time
+
+NB earlier caveats about the problems caused by missing dates and by sampling. This section should be considered very provisional.
+
+```{r}
+# qs_petitions_combined |> 
+#   filter(!is.na(decade)) |>
+#   count(decade, county) |>
+#   ggplot(aes(x=decade, y=n)) +
+#   geom_col() +
+#   facet_wrap(~county, ncol=2, scales = "free_y") +
+#    # scale_y_continuous(expand = c(0, 0)) +     
+#    # scale_x_continuous(expand = c(0, 0) ) +
+#   labs(y="petitions")
+```
+
+### stacked bar chart
+
+This is a popular type of graph... but there are far too many categories for it to be really effective, even after dropping the smallest topics and "other".
+
+```{r topics_decades_stacked_bar}
+#| fig-alt: "stacked bar chart of QS petition topics per decade; cluttered and hard to make much sense of what is going on."
+qs_petitions_combined |> 
+  filter(#!topic %in% c("other", "dissenting worship", "imprisoned debtors"), 
+         !is.na(decade)) |>
+  count(decade, topic) |>
+  ggplot(aes(x=decade, y=n, fill=topic)) +
+  geom_col() +
+  #facet_wrap(~topic, ncol=2, strip.position = "right", scales = "free_y") +
+   # scale_y_continuous(expand = c(0, 0)) +     
+   # scale_x_continuous(expand = c(0, 0) ) +
+  scale_fill_manual(values = topic_colours) +
+  labs(y="number of petitions", title="QS petition topics, by decade")
+```
+
+
+```{r}
+# https://twitter.com/sharon_howard/status/1225086037061521408 [2020/02/05]
+# 
+# Ridgeline plots seem so *cute*, or is it just me?
+# Plus: easy to compare patterns of change in lots of categories at once. 
+# Minus: hides that there are big variations in size of categories.
+# "Distribution of petition topics, 1580-1720"
+
+## hmm. i don't think it's right to do these with years instead of decades since 2 of the counties are decadal samples, and counting by decade produces weird results...
+```
+
+### faceted bar chart
+
+Faceting (or "small multiples") can be a more effective way of showing complex data. The y axis is scaled for each facet, enabling direct comparison of trends. Having said that, this is a pretty mixed picture! 
+
+```{r topics_decades_faceted_bar}
+#| fig-alt: "faceted bar chart of QS petition topics per decade; a bit easier to make comparisons than with a stacked bar chart."
+
+# i think this is as effective as anything, once you use scales=free_y!
+qs_petitions_combined |> 
+  #filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors"), !is.na(decade)) |>
+  count(decade, topic) |>
+  group_by(topic) |>
+  mutate(p = n/sum(n)*100) |>
+  ungroup() |>
+  ggplot(aes(x=decade, y=n, fill=topic)) +
+  geom_col() +
+  facet_wrap(~topic, ncol=1, strip.position = "right", scales = "free_y") +
+   scale_y_continuous(expand = c(0, 0)) +     
+   scale_x_continuous(expand = c(0, 0) ) +
+  scale_fill_manual(values = topic_colours) +
+  theme(strip.text = element_blank(), legend.title = element_text(size = 16)) +
+  labs(y="number of petitions", title="QS petition topics, by decade") 
+```
+
+
+
+
+### heatmap
+
+(white tiles represent 0s)
+
+This heatmap is an example of how stripping away subtlety can be useful to draw attention to particularly strong patterns. In this case, the "warm" cluster of petitions for military pensions in the 1650s dramatically highlights a legacy of the Civil Wars. But it indicates that a number of other topics were *also* at or near peaking around the middle of the 17th century. The heatmap also highlights the sparsity of petitions in many topics after 1700, except for the new topics of dissenting worship and imprisoned debtors.
+
+```{r topics_decades_pc_heatmap}
+#| fig-alt: "heatmap of QS petition topics per decade, using percentages of topic rather than numbers; useful to draw attention to the most exceptional topic-decades."
+
+# heatmap of topics
+
+qs_petitions_combined |> 
+  filter(#!topic %in% c("other", "dissenting worship", "imprisoned debtors"), 
+         !is.na(decade) ) |>
+  count(decade, topic) |>
+  group_by(topic) |>
+  mutate(p = n/sum(n)*100) |>
+  ungroup() |>
+   mutate(topic = fct_rev(topic)) |>
+   #mutate(decade = paste0(decade, "s")) |>
+   ggplot(aes(decade, fill=p, y=topic)) +
+   geom_raster() +
+   scale_x_continuous(expand = c(0,0), breaks = c(1580, 1620, 1660, 1700, 1740, 1780), labels = c(1580, 1620, 1660, 1700, 1740, 1780)) +
+  scale_fill_viridis_b() +
+  theme(legend.position = "bottom", # does this encourage reading % horizontally?
+    panel.grid.major = element_blank() , panel.grid.minor = element_blank() # white lines
+        ) +
+   labs(fill="% in \ntopic", title="Heatmap of petition topics over time", y=NULL)
+```
+
+
+
+
+
+
+## Gender
+
+("na" = collective petitions and a handful of unknowns)
+
+
+### stacked bar chart
+
+But this time a "proportional" stacked chart to show % instead of numbers. Again, there are probably too many categories for this to be really effective, even though I've reduced the topics again. You can pick out a few things - eg female/poor relief, female/paternity; male/officeholding; na/rates - but it's hard to get a good idea of their relative significance. On top of that it gives no sense at all of the big differences in size between the gender groups.
+
+```{r topics_gender_prop_stacked_bar}
+#| fig-alt: "proportional stacked bar chart of QS petition topics by gender."
+
+#NA gender? seem to be a mix in terms of county but all= collective (1 "multiple") so ok
+qs_petitions_combined |> 
+  filter(!topic %in% c("other", "dissenting worship", "imprisoned debtors") ) |>
+  count(gender, topic) |>
+  ggplot(aes(x=gender, y=n, fill=topic)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +     
+  #  # scale_x_continuous(expand = c(0, 0) ) +
+  scale_fill_manual(values = topic_colours) +
+  labs(y="% of petitions", title = "QS petition topics, by gender")
+```
+
+### mosaic
+
+The mosaic highlights the *most important* relationships more clearly.
+
+Eg, female petitioners are strongly positively associated with poor relief and paternity, while the negative associations with alehouse, cottage, officeholding are somewhat weaker. Stronger associations for male petitions are negative ones with paternity and poor relief petitions. For collective petitions it's all about rates (and it is common for "inhabitants" of a township or parish to group together to complain about taxes), but they're less likely to be litigation-related.
+
+Conversely, eg, although you can see in the bar chart a lower female than male % for military petitions, the difference is too small to register as *statistically* significant.
+
+```{r topics_gender_mosaic}
+#| fig-alt: "mosaic plot of QS petition topics by gender; notable features include: female/paternity and poor relief petitions are over-represented, male paternity under-represented."
+
+gender_topic_tab <-
+with(
+  qs_petitions_combined |>
+  mutate(topic = case_when(
+    topic %in% c("dissenting worship", "imprisoned debtors", "other") ~ NA_character_,
+    TRUE ~ topic
+  ))  |>
+  # mutate(gender = case_when(
+  #   pet_gender=="f" ~ "female", 
+  #   pet_gender=="fm" ~ "mixed", 
+  #   pet_gender=="m" ~ "male", 
+  #   TRUE ~ "na"))  |>
+  filter(!is.na(topic)) ,
+  table(topic, gender)
+)
+
+mosaic(~gender + topic, 
+  gender_topic_tab, shade = TRUE , legend=FALSE,
+       main="QS petition topics, by gender",
+       rot_labels = c(left = 0, top=90), 
+       offset_varnames = c(left = 1, top=2.5), # space categories-varname, i think
+       offset_labels = c(left = 1, top=1.5),
+      margins = c(4.5, 0, 2, 1),
+  #margin = unit(4, "lines"),
+       #spacing = spacing_increase(start = unit(0.2, "lines"), rate = 2) , 
+       labeling_args = list(
+         abbreviate = c(topic = 11),
+         tl_labels = TRUE, tl_varnames = FALSE,
+         gp_labels = gpar(fontsize=10)
+        )
+       )
+
+```
+
+### heatmap
+
+The strong association between mixed gender petitions and litigation stands out here too. It's an intriguing one, even allowing for the small size of the group.
+
+
+```{r topics_gender_heatmap}
+#| fig-alt: "heatmap of QS petition topics by gender, using percentage of gender rather than numbers. Intriguing hotspot for mixed gender/litigation petitions."
+
+# heatmap of topics
+
+qs_petitions_combined |> 
+  count(gender, topic) |>
+  group_by(gender) |>
+  mutate(p = n/sum(n)*100) |>
+  ungroup() |>
+   mutate(topic = fct_rev(topic)) |>
+   #mutate(decade = paste0(decade, "s")) |>
+   ggplot(aes(x=gender, fill=p, y=topic)) +
+   geom_raster() +
+   #scale_x_continuous(expand = c(0,0), breaks = c(1580, 1620, 1660, 1700, 1740, 1780), labels = c(1580, 1620, 1660, 1700, 1740, 1780)) +
+  scale_fill_viridis_b() +
+  theme(panel.grid.major = element_blank() , panel.grid.minor = element_blank() # white lines
+        ) +
+   labs(fill="% in \ngender", title="Heatmap of petition topics and gender", y=NULL)
+```
+
+

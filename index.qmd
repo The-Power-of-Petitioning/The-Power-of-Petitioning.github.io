@@ -1,0 +1,53 @@
+---
+title: "Visualising the power of early modern petitioning"
+listing:
+  - id: tpop-grid
+    contents: 
+    - "themes/!(index).qmd"
+    type: grid
+    sort: "title"
+    fields: [image, title, description]
+    categories: true
+    sort-ui: false
+    filter-ui: false
+toc: false
+---
+
+
+This a website by [Sharon Howard](http://sharonhoward.org) for exploring and visualising data created by and for the [Power of Petitioning in the 17th Century](https://petitioning.history.ac.uk/) (TPOP).
+Most pieces are likely to be quite short, with commentary focusing on explanation of the visuals rather than discussion of findings.
+
+In the first instance, because I'm writing a case study on Cheshire petitioning, I'm focusing on [Cheshire petitions](https://www.british-history.ac.uk/petitions/cheshire), followed by other Quarter Sessions petitions, and particularly on exploring themes that I want to think about in the study.
+
+
+## Themes
+
+
+::: {#tpop-grid}
+:::
+
+
+
+### future plans
+
+- contexts
+- texts
+
+
+## TPOP collections on British History Online
+
+- Quarter Sessions:
+  - [Cheshire QS](https://www.british-history.ac.uk/petitions/cheshire)
+  - [Derbyshire](https://www.british-history.ac.uk/petitions/derbyshire)
+  - [Staffordshire](https://www.british-history.ac.uk/petitions/staffordshire) 
+  - [Westminster](https://www.british-history.ac.uk/petitions/westminster)
+  - [Worcestershire](https://www.british-history.ac.uk/petitions/worcs-quarter-sessions)
+- [House of Lords](https://www.british-history.ac.uk/petitions/house-of-lords)
+- [State Papers](https://www.british-history.ac.uk/petitions/state-papers)
+
+## TPOP public data
+
+- [Zenodo](https://doi.org/10.5281/zenodo.7027692) - the data used here, with detailed documentation
+
+
+

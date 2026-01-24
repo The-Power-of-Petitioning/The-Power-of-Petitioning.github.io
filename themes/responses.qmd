@@ -1,0 +1,815 @@
+---
+title: "QS responses to petitions"
+description: "Did petitioners get what they wanted?"
+author: Sharon Howard 
+categories: 
+  - QS
+  - authorities
+execute: 
+  warning: false
+  message: false
+  echo: false 
+---
+
+
+
+```{r}
+# see https://twitter.com/sharon_howard/status/1204141795178881034  [2019/12/9]
+# I've been coding responses to Cheshire QS petitions (about 2/3 have some sort of response written on the petition itself). How often did petitioners get what they wanted?
+#see https://twitter.com/sharon_howard/status/1306150481278971904  [2020/09/16]
+#[noted in tweet that this wasn't presented in workshop slides]
+```
+
+
+## Quarter Sessions petitions
+
+I initially focused on Cheshire quarter sessions; although this is still my main interest, I'm now able to add some data for the four other counties in TPOP's transcribed QS collections (Derbyshire, Staffordshire, Westminster and Worcestershire) for comparisons.
+
+```{r}
+# UPDATED WITH PUBLIC DATA AND CHECKED
+
+source(here::here("_R/data.R"))
+
+
+# viz, ggplot extensions etc
+library(ggthemes)
+theme_set(theme_minimal()) # set preferred ggplot theme 
+
+### devtools::install_github("hrbrmstr/waffle")
+library(waffle)
+library(hrbrthemes)
+
+library(ggridges)
+##https://github.com/wilkox/treemapify
+library(treemapify)
+
+library(patchwork)
+
+library(RColorBrewer)
+# nb.cols <- 18
+# mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+# scale_fill_manual(values = mycolors) +
+```
+
+
+
+```{r}
+petitions_responses <-
+qs_petitions_combined %>%
+  mutate(response = case_when(
+    #is.na(response_cat) ~ "no_response",
+    response_cat=="nothing" ~ "rejected_nil",
+    response_cat=="absent" ~ "rejected",
+    TRUE ~ response_cat
+  )) %>%  
+  mutate(response_s = case_when(
+    response %in% c("granted", "grant_cond", "grant_part", "referred") ~ "positive",
+    response %in% c("rejected_nil", "rejected", "no_response") ~ "negative",
+    TRUE ~ NA_character_
+  ))  %>%
+  filter(!is.na(response_s)) %>%
+  mutate(response = factor(response)) %>%
+  mutate(response = fct_relevel(response, "granted", "grant_part", "grant_cond", "referred", "rejected_nil", "rejected", "no_response")) %>%
+  mutate(topic = case_when(
+    topic %in% c("dissenting worship", "imprisoned debtors") ~ "other",
+    TRUE ~ topic
+  )) %>% 
+  ##some na gender... all from transcribed years, all but one=collective, just assume the last one is too
+  mutate(petition_gender=case_when(
+    is.na(petition_gender) ~ "na",
+    TRUE ~ petition_gender
+  )) %>%
+  mutate(petition_type_s = str_remove(petition_type, " *on *behalf *"))
+
+ches_petition_responses_fct <-
+  petitions_responses %>%
+  filter(county=="Cheshire")
+
+qs_level1_petitions_responses_fct <-
+  petitions_responses %>%
+  filter(county !="Cheshire")
+```
+
+
+```{r v1}
+# # looks good with the sqlite data!
+# ches_petition_responses_fct <-
+# qs_ches_petitions %>%
+#   #qs_ches_petitions_full_responses %>%
+#   mutate(response = case_when(
+#     is.na(response_cat) ~ "no_response",
+#     response_cat=="nothing" ~ "rejected_nil",
+#     response_cat=="absent" ~ "rejected",
+#     TRUE ~ response_cat
+#   )) %>%  
+#   mutate(response_s = case_when(
+#     response %in% c("granted", "grant_cond", "grant_part", "referred") ~ "positive",
+#     response %in% c("rejected_nil", "rejected", "no_response") ~ "negative",
+#     TRUE ~ NA_character_
+#   )) %>%
+#   filter(!is.na(response_s)) %>%
+#   mutate(response = factor(response)) %>%
+#   mutate(response = fct_relevel(response, "granted", "grant_part", "grant_cond", "referred", "rejected_nil", "rejected", "no_response")) %>%
+#   mutate(topic = case_when(
+#     topic %in% c("dissenting worship", "imprisoned debtors") ~ "other",
+#     TRUE ~ topic
+#   )) %>% 
+#   ##some na gender... all from transcribed years, all but one=collective, just assume the last one is too
+#   mutate(petition_gender=case_when(
+#     is.na(petition_gender) ~ "na",
+#     TRUE ~ petition_gender
+#   )) %>%
+#   mutate(petition_type_s = str_remove(petition_type, " *on *behalf *"))
+# 
+# # ches_petition_responses_fct_shadow <-
+# # ches_petition_responses_fct %>%
+# #   bind_shadow(only_miss = TRUE)
+# 
+# qs_level1_petitions_responses_fct <-
+# qs_level1_petitions %>%
+#   mutate(response = case_when(
+#     is.na(response_cat) ~ "no_response",
+#     response_cat=="nothing" ~ "rejected_nil",
+#     response_cat=="absent" ~ "rejected",
+#     TRUE ~ response_cat
+#   )) %>%  
+#   mutate(response_s = case_when(
+#     response %in% c("granted", "grant_cond", "grant_part", "referred") ~ "positive",
+#     response %in% c("rejected_nil", "rejected", "no_response") ~ "negative",
+#     TRUE ~ NA_character_
+#   ))   %>%
+#   filter(!is.na(response_s)) %>%
+#   mutate(response = factor(response)) %>%
+#   mutate(response = fct_relevel(response, "granted", "grant_part", "grant_cond", "referred", "rejected_nil", "rejected", "no_response")) %>%
+#   mutate(topic = case_when(
+#     topic %in% c("dissenting worship", "imprisoned debtors") ~ "other",
+#     TRUE ~ topic
+#   )) %>% 
+#   ##some na gender... all from transcribed years, all but one=collective, just assume the last one is too
+#   mutate(petition_gender=case_when(
+#     is.na(petition_gender) ~ "na",
+#     TRUE ~ petition_gender
+#   )) %>%
+#   mutate(petition_type_s = str_remove(petition_type, " *on *behalf *"))
+# 
+# petitions_responses <-
+#   bind_rows(
+#     ches_petition_responses_fct,
+#     qs_level1_petitions_responses_fct
+#   )
+```
+
+
+## The data
+
+The data is available, with full documentation, from [Zenodo](https://doi.org/10.5281/zenodo.7027692).
+
+Cheshire: I'm working with a sample of 613 petitions from the Cheshire QS files between 1573 and 1798. I photographed all surviving petitions from every year ending in -8 between 1608 and 1798, plus every pre-1600 calendared petition. (My estimate is that there are in total about 5000 petitions in the files.) TPOP transcribed all the 16th-century petitions and a 1-in-20-year sample for the 17th and 18th centuries (years -08, -18, -38, -58, -78, -98); I abstracted the rest, and encoded all the responses. 
+
+For the other four counties, I have a total of 1115 petitions (1589-1799). As I've noted [elsewhere](topics.html), the survival of petitions in these collections is much more patchy than for Cheshire.  Also, the individual counties' numbers are smaller (Derbyshire in particular has only 94 petitions).
+
+I'm using only responses written directly on the petitions. This may miss responses recorded in separate documents, though I haven't found any extra information while consulting the Cheshire files. I've also examined the 17th-century Cheshire QS order books, but haven't found additional responses there; they're more useful for fleshing out the reasoning behind the brief summaries on the petitions.
+
+About 70% of the Cheshire petitions have some kind of annotated response and, since I couldn't find further records of responses, I decided to treat the absence of a recorded response as a type of *negative* response. However, annotated response rates have turned out to be considerably lower (and quite variable) for the other counties, and I haven't been able to check for additional sources for those collections. So this will need to be borne in mind when making comparisons.
+
+
+
+The detailed coding categories:
+
+- **granted** = request granted in full
+- **grant_part** = request partially granted (eg smaller amount of relief than requested)
+- **grant_cond** = granted, but conditional on the petitioner doing something
+- **referred** = to be further investigated or mediated outside the court, usually by local JPs
+- **rejected_nil** = rejection with only the terse annotation "nil/nihil" or "nothing"
+- **rejected** = rejection with a reason given (including "absent")
+- **no_response** = no response written on the petition
+- **uncertain** = an apparent response, but it couldn't be interpreted (eg damaged or illegible). 
+
+Simplified positive/negative:
+
+- **positive** = granted, grant_part, grant_cond or referred
+- **negative** = rejected_nil, rejected, no_response
+
+I'll exclude the small uncertain group from analysis (some may not even be responses), so I'm looking at 593 Cheshire petitions and 1083 others.
+
+
+## Overview
+
+How often do petitioners get what they want?
+
+Overall, 56.3% of the 593 Cheshire petitions received a *positive* response, which suggests is that petitioners to the Cheshire magistrates had a reasonable chance of getting at least part of what they wanted, but a positive outcome was far from guaranteed. 
+
+However, petitioners in the other four counties appear to have been less likely to get a positive response, averaging only 28%. Westminster stands out with an exceptionally low positive response rate of only 7.9%. 
+
+```{r waffle-responses-to-counties-qs-petitions, fig.alt='Waffle chart of positive vs negative responses to QS petitions between 1573 and 1798, by county; positive response rates were higher for Cheshire than any other county.'}
+petitions_responses %>%  #count(response) %>% mutate(p = n/sum(n))
+  #filter(response !="uncertain") %>%
+  count(response_s, county) %>%
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  facet_wrap(~county) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  labs(fill="type", title="Responses to QS petitions by county", caption="1 square=1% of petitions")
+
+```
+
+
+```{r}
+# petitions_responses %>%
+#   filter(!response %in% c("rejected_nil", "rejected", "no_response")) %>%
+#   group_by(county) %>%
+#   count(response) %>% mutate(p = n/sum(n)*100) %>%
+#   ungroup()
+```
+
+
+A more detailed breakdown: 
+
+Cheshire: 229 (37.3%) requests were granted in full, 50 (8.4%) partially or conditionally and 55 (9.3%) were referred. 75 (12.6%) were rejected with a response and 184 (31%)  had no response. 
+
+The other counties vary, but it's clear that the main difference is no-response petitions. Westminster is *so* different from the other counties that it does suggest the possibility of very different recording practices.
+
+```{r waffle-detailed-responses-to-counties-qs-petitions, fig.alt='Waffle chart of detailed response categories for Quarter Sessions petitions.'}
+
+petitions_responses %>%
+  count(response, county) %>%
+  ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  facet_wrap(~county) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+    scale_fill_brewer(palette = "RdYlBu") +
+  labs(fill="type", title="Breakdown of responses to QS petitions (1)", caption="1 square=1% of petitions")
+```
+
+On the other hand, there are some broad similarities between Cheshire, Derbyshire, Staffordshire and Worcestershire. If negative response and no response petitions are combined, the differences between these four counties are less noticeable. Cheshire JPs *were* more likely to respond positively to petitions, but it seems they were also simply more likely to bother to annotate a negative response. Derbyshire magistrates were least likely, apparently, to refer petitions for further arbitration.
+
+```{r waffle-less-detailed-responses-to-counties-qs-petitions, fig.alt='Waffle chart of detailed response categories for Quarter Sessions petitions, combining all negative responses into a single category.'}
+petitions_responses  %>%  
+  mutate(response_ss = as.character(response)) %>%
+  mutate(response_ss = case_when(
+    #response %in% c("granted", "grant_cond", "grant_part", "referred") ~ "positive",
+    response_ss %in% c("rejected_nil", "rejected", "no_response") ~ "negative",
+    TRUE ~ response_ss
+  )) %>%
+  mutate(response_ss = factor(response_ss)) %>%
+  mutate(response_ss = fct_relevel(response_ss, "granted", "grant_part", "grant_cond", "referred", "negative"))  %>%
+  count(response_ss, county) %>%
+  ggplot(aes(fill=response_ss, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  facet_wrap(~county) +
+  theme_minimal() +
+  theme_enhance_waffle() +
+    scale_fill_brewer(palette = "RdYlBu") +
+  labs(fill="type", title="Breakdown of responses to QS petitions (2)", caption="1 square=1% of petitions")
+```
+
+
+```{r}
+#Finally, if only *positive* responses are considered, Westminster doesn't look quite so different after all.
+# petitions_responses  %>%
+#   filter(!response %in% c("rejected_nil", "rejected", "no_response")) %>%
+#   count(response, county) %>%
+#   ggplot(aes(fill=response, values=n)) +
+#   geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+#   # can't remember how to fix ordering in waffle...
+#   coord_equal() +
+#   facet_wrap(~county) +
+#   theme_minimal() +
+#   theme_enhance_waffle() +
+#     scale_fill_brewer(palette = "RdYlBu") +
+#   labs(fill="type", title="Breakdown of positive responses to QS petitions", caption="1 square=1% of petitions")
+```
+
+
+```{r}
+# qs_level1_petitions_responses_fct %>%
+#   bind_rows(ches_petition_responses_fct) %>%
+#   count(county, response) %>%
+#   group_by(county) %>%
+#   mutate(p = n/sum(n)) %>%
+#   ungroup() %>%
+#   filter(response=="no_response") %>%
+#   ggplot(aes(county, p)) +
+#   geom_point() +
+#   scale_y_continuous(labels = percent_format(), limits = c(0,1)) +
+#   labs(y="% with no response", title="Comparison of QS petitions without responses")
+```
+
+
+
+
+
+
+## In more depth
+
+Could variations in responses point to factors that increase or reduce the chances of success? 
+
+
+```{r}
+## % no response by topic
+# ches_petition_responses_fct %>%
+#   select(response_cat, topic)  %>%
+#   group_by(topic) %>%
+#   miss_var_summary() %>%
+#   ungroup() %>%
+#   inner_join(ches_petition_responses_fct %>% count(topic, name="n_topic"), by="topic") %>%
+#   mutate(topic = fct_reorder(topic, pct_miss)) %>%
+#   ggplot(aes(topic, pct_miss)) +
+#   geom_col(colour = "#484878", fill = "#484878", width=0.001) +
+#   geom_point(colour = "#484878", fill = "#484878", shape="diamond", aes(size=n_topic), show.legend = FALSE ) +
+#   coord_flip() +
+#   scale_color_discrete(guide = FALSE)  +
+#   labs(y="% no response", x=NULL)
+```
+
+```{r}
+## % no response by decade
+# ches_petition_responses_fct %>%
+#   select(response_cat, decade)  %>%
+#   group_by(decade) %>%
+#   miss_var_summary() %>%
+#   ungroup() %>%
+#   inner_join(ches_petition_responses_fct %>% count(decade, name="n_decade"), by="decade") %>%
+#   #mutate(decade = fct_reorder(factor(decade), pct_miss)) %>%
+#   ggplot(aes(decade, pct_miss)) +
+#   geom_col(colour = "black", fill = "black", width=0.001) +
+#   geom_point(aes(size=n_decade), shape="diamond",  show.legend = FALSE ) +
+#   #coord_flip() +
+#   scale_color_discrete(guide = FALSE)  +
+#   labs(y="% no_response")
+```
+
+
+### petition topics
+
+The topics are a set of broad categories manually assigned by the project for QS petitions; a couple of topics with very low numbers (dissenting worship, debtors - <10 petitions) have been merged into the "other" category.
+
+The proportional bar chart on the left shows the detailed breakdown of responses (Cheshire QS only). The smaller chart on the right shows the % of positive responses and the size of the square indicates the relative size of the category.
+
+```{r proportional-bar-responses-cheshire-qs-petitions-by-topics, fig.alt='Dual chart of responses to Cheshire petitions broken down by petition topics, ordered by % of positive responses: 1. Proportional stacked bar chart of detailed response categories to petitions; 2. "Bubble" chart of % of positive responses for each topic.'}
+
+# why is htis cheshire only?
+ches_petition_responses_fct %>%
+  count(topic, response) %>%
+  inner_join(
+   ches_petition_responses_fct  %>%
+  count(topic, response_s, name="nrs") %>%
+  group_by(topic) %>%
+  mutate(p = nrs/sum(nrs)) %>%
+  ungroup() %>%
+  filter(response_s=="positive"), by="topic"
+  ) %>%
+  ggplot(aes(fct_reorder(topic, p), n, fill=response)) +
+  geom_col(position = "fill") +
+  #scale_fill_tableau() +
+  #scale_fill_colorblind() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  #scale_fill_viridis_d(option="inferno") + viridis really doesn't work for this...
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses") + #, title="Responses to Cheshire QS Petitions by topic 1573-1798")  +
+  
+ches_petition_responses_fct %>%
+  count(topic, response_s) %>%
+  group_by(topic) %>%
+  mutate(p = n/sum(n), nn=sum(n)) %>%
+  ungroup() %>%
+  filter(response_s=="positive") %>%
+  ggplot(aes(fct_reorder(topic, p), p)) +
+  geom_point(aes(size=nn), shape=0) + # 0= unfilled square
+  geom_point(size=0.1) +
+  scale_y_continuous(limits = c(0,1), labels = percent_format(), breaks = c(0,0.5,1)) +
+  #scale_size(breaks = c(20, 90, 160)) +
+  coord_flip() +
+  theme(axis.text.y=element_blank()) +
+  labs(y="% positive", x=NULL, size="petitions")  +
+  
+plot_layout(ncol=2, widths=c(3,1)) + plot_annotation(title="Responses by topic to Cheshire QS petitions")
+
+# original to 1698
+#ggsave("fig/ches_qs_responses_topics_bar.png", width=7.30, height=4.5)
+#some differences from 2019 version - due to addition of 18th c data; filter to <1700 and they match
+```
+
+
+In some categories, the numbers may be too small to draw any real conclusions. Even so, it's noticeable that there is some relationship between the number of petitions in a topic and the likelihood of a positive response; that's to say, *smaller* topic categories are *less* likely to get a positive response. The exceptions to this pattern are the largest category (litigation, 171 petitions and one of the lowest positive response rates at 44.4%) and employment (15 petitions, 73% positive responses).
+
+But when analysis is extended to the other counties, the patterns are rather different and that possible correlation disappears.
+
+```{r proportional-bar-responses-other-qs-petitions-by-topics, fig.alt='Dual chart of responses to petitions excl Cheshire, broken down by petition topics, ordered by % of positive responses: 1. Proportional stacked bar chart of detailed response categories to petitions; 2. "Bubble" chart of % of positive responses for each topic.'}
+qs_level1_petitions_responses_fct %>%
+  count(topic, response) %>%
+  inner_join(
+   qs_level1_petitions_responses_fct %>%
+  count(topic, response_s, name="nrs") %>%
+  group_by(topic) %>%
+  mutate(p = nrs/sum(nrs)) %>%
+  ungroup() %>%
+  filter(response_s=="positive"), by="topic"
+  ) %>%
+  ggplot(aes(fct_reorder(topic, p), n, fill=response)) +
+  geom_col(position = "fill") +
+  #scale_fill_tableau() +
+  #scale_fill_colorblind() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  #scale_fill_viridis_d(option="inferno") + viridis really doesn't work for this...
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses") + #, title="Responses to Cheshire QS Petitions by topic 1573-1798")  +
+  
+qs_level1_petitions_responses_fct %>%
+  count(topic, response_s) %>%
+  group_by(topic) %>%
+  mutate(p = n/sum(n), nn=sum(n)) %>%
+  ungroup() %>%
+  filter(response_s=="positive") %>%
+  ggplot(aes(fct_reorder(topic, p), p)) +
+  geom_point(aes(size=nn), shape=0) + # 0= unfilled square
+  geom_point(size=0.1) +
+  scale_y_continuous(limits = c(0,1), labels = percent_format(), breaks = c(0,0.5,1)) +
+  #scale_size(breaks = c(20, 90, 160)) +
+  coord_flip() +
+  theme(axis.text.y=element_blank()) +
+  labs(y="% positive", x=NULL, size="petitions")  +
+  
+plot_layout(ncol=2, widths=c(3,1)) + plot_annotation(title="Responses by topic to QS petitions excl Cheshire")
+
+```
+
+
+
+
+Additionally, Cheshire has two very distinct clusters in positive response rates by topic size. 
+
+```{r scatter-plot-positive-responses-topics-size-cheshire, fig.alt='Scatter plot with text labels showing relations between % positive responses and number of petitions in topics, indicating two main clusters of topics; (mostly) small numbers <50% positive responses, larger numbers >60% positive.'}
+
+ches_petition_responses_fct %>%
+  add_count(topic, name="n_topic") %>%
+  count(response_s, topic, n_topic) %>%
+  # you've got positives for every year but if you didn't this might need complete() or sthg...
+  filter(response_s=="positive") %>%
+  mutate(p = n/n_topic) %>%
+  arrange(p) %>%
+  mutate(grp = case_when(
+    n_topic>150 | p>0.7 ~ "u",
+    p<0.5  ~ "g1",
+    p>0.6 ~ "g2",
+    TRUE ~ "u"
+  )) %>%
+  #mutate(topic = fct_reorder(topic, p)) %>%
+  ggplot(aes(n_topic, p)) +
+  ggforce::geom_mark_ellipse(aes(fill = grp, filter = grp != 'u'), show.legend = F) +
+  geom_point() +
+  geom_text(aes(label=topic), size=3, nudge_y = 0.01) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  labs(y="% responses positive", x="number of petitions in topic", title="Positive response clusters, Cheshire only")
+```
+
+For the other counties there is no sign of the same clustering by topic size. But in terms of positive response %s there are some similarities in topics.
+
+```{r scatter-plot-positive-responses-topics-size-other, fig.alt='Scatter plot with text labels showing relations between % positive responses and number of petitions in topics (excl Cheshire), also indicating two main clusters of topics but no correlation with topic size'}
+qs_level1_petitions_responses_fct %>%
+  add_count(topic, name="n_topic") %>%
+  count(response_s, topic, n_topic) %>%
+  # you've got positives for every year but if you didn't this might need complete() or sthg...
+  filter(response_s=="positive") %>%
+  mutate(p = n/n_topic) %>%
+  arrange(p) %>%
+  mutate(grp = case_when(
+    n_topic>150 | p>0.7 ~ "u",
+    p<0.3  ~ "g1",
+    p>0.35 ~ "g2",
+    TRUE ~ "u"
+  )) %>%
+  #mutate(topic = fct_reorder(topic, p)) %>%
+  ggplot(aes(n_topic, p)) +
+  ggforce::geom_mark_ellipse(aes(fill = grp, filter = grp != 'u'), show.legend = F) +
+  geom_point() +
+  geom_text(aes(label=topic), size=3, nudge_y = 0.01) +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  labs(y="% responses positive", x="number of petitions in topic", title="Positive response clusters, excluding Cheshire")
+```
+
+
+Another feature to note is the unusually high percentage of conditional responses for cottage petitions; it was very common for a request to be allowed to build a cottage to be granted on condition of obtaining the consent of the lord of the manor.
+
+```{r}
+# ches_petition_responses_fct %>%
+#   count(topic, response_s) %>%
+#   group_by(topic) %>%
+#   mutate(p = n/sum(n), nn=sum(n)) %>%
+#   ungroup() %>%
+#   filter(response_s=="positive") %>%
+#   arrange(p)
+```
+
+
+
+
+```{r proportional-bar-responses-cheshire-qs-petitions-by-years, fig.alt='Dual chart of responses to petitions broken down by year: 1. Proportional stacked bar chart of detailed response categories to petitions; 2. "Bubble" chart of % of positive responses for each topic.'}
+### change over time
+
+#(Again, I haven't tried to extend this particular analysis beyond Cheshire.)
+
+# ches_petition_responses_fct %>%
+#   mutate(year = case_when(
+#     decade < 1600 ~ "1500s",
+#     decade > 1690 ~ "1700s",
+#     TRUE ~ as.character(year)
+#   )) %>%
+#   mutate(year = factor(year)) %>%
+#   count(response, year)  %>%
+#   ggplot(aes(fct_rev(year), n, fill=response)) +
+#   geom_col(position = "fill") +
+#   scale_fill_brewer(palette = "RdYlBu") +
+#   coord_flip() +
+#     theme(legend.position = "left") +
+#   #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+#   labs(y="% of petitions", x=NULL, fill="responses") + #, title="Responses to Cheshire QS Petitions by topic 1573-1798")  +
+#   
+# ches_petition_responses_fct %>%
+#   mutate(year = case_when(
+#     decade < 1600 ~ "1500s",
+#     decade > 1690 ~ "1700s",
+#     TRUE ~ as.character(year)
+#   )) %>%
+#   mutate(year = factor(year)) %>%
+#   count(year, response_s) %>%
+#   group_by(year) %>%
+#   mutate(p = n/sum(n), nn=sum(n)) %>%
+#   ungroup() %>%
+#   filter(response_s=="positive") %>%
+#   ggplot(aes(fct_rev(year), p)) +
+#   geom_point(aes(size=nn), shape=0) + # 0= unfilled square
+#   geom_point(size=0.1) +
+#   scale_y_continuous(limits = c(0,1), labels = percent_format(), breaks = c(0,0.5,1)) +
+#   #scale_size(breaks = c(20, 90, 160)) +
+#   coord_flip() +
+#   theme(axis.text.y=element_blank()) +
+#   labs(y="% positive", x=NULL, size="petitions")  +
+#   
+# plot_layout(ncol=2, widths=c(3,1)) + plot_annotation(title="Responses by year")
+# Pre-1600 and post-1700 petitions have been combined because the annual numbers are very small. There were only 7 petitions in 1698, all of them for poor relief, so it's difficult to be sure why the success rate (100%!) was so exceptional in that year.
+# 
+# The JPs' diligence in 1648 is particularly noteworthy; there were almost 150 petitions during that year, but only 22 have no response at all. Moreover, apart from 1698, it was the most successful year for petitioners.
+# 
+# There is a *possible* trend overall - the positive % rising until mid-century and declining afterwards - but 1628 and 1688 really confound any such pattern. Unlike topics, there are no clear clusters or correlations between petition numbers and positive %.
+```
+
+
+
+```{r}
+# ches_petition_responses_fct %>%
+#   mutate(year = case_when(
+#     decade < 1600 ~ "1500s",
+#     decade > 1690 ~ "1700s",
+#     TRUE ~ as.character(year)
+#   )) %>%
+#   mutate(year = factor(year)) %>%
+#   add_count(year, name="n_year") %>%
+#   count(response_s, year, n_year) %>%
+#   # you've got positives for every year but if you didn't this might need complete() or sthg...
+#   filter(response_s=="positive") %>%
+#   mutate(p = n/n_year) %>%
+#   ggplot(aes(n_year, p)) +
+#   #geom_smooth() +
+#   geom_label(aes(label=year)) +
+#   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0,1)) +
+#   labs(x="number of petitions in year", y="% positive responses", title="Positive responses and yearly counts")
+```
+
+
+### petition type
+
+Variations here appear to be much less noteworthy than previous categories of analysis.
+
+Three types
+
+- single petitioner (413)
+- multiple named petitioners (72)
+- collective (eg "inhabitants of Nantwich") (108)
+
+There is very little difference in overall positive/negative responses to the three types, though single-petitioner petitions are slightly more likely to receive a positive response.
+
+```{r waffle-responses-to-cheshire-qs-petitions-by-petition-type, fig.alt='Waffle chart of positive vs negative responses to petitions(Cheshire), faceted by petition type (single, group, collective); shows not much variation between the types.'}
+
+ches_petition_responses_fct %>%
+  count(petition_type_s, response_s) %>%
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  facet_wrap(~petition_type_s) +
+  labs(title = "Simplified responses (Cheshire only) by petition type", fill="response")
+```
+
+```{r waffle-responses-to-other-qs-petitions-by-petition-type, fig.alt='Waffle chart of positive vs negative responses to petitions (excl Cheshire), faceted by petition type (single, group, collective); shows not much variation between the types.'}
+
+qs_level1_petitions_responses_fct %>%
+  count(petition_type_s, response_s) %>%
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  facet_wrap(~petition_type_s) +
+  labs(title = "Simplified responses (excluding Cheshire) by petition type", fill="response")
+```
+
+
+```{r}
+
+# qs_level1_petitions_responses_fct %>%
+#   count(petition_type_s, response_s) %>%
+#     ggplot(aes(fill=response_s, values=n)) +
+#   geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+#   # can't remember how to fix ordering in waffle...
+#   coord_equal() +
+#   theme_minimal() +
+#   theme_enhance_waffle() +
+#   scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+#   facet_wrap(~petition_type_s) +
+#   labs(title = "Simplified responses by petition type", fill="response")
+```
+
+The responses breakdown does show more variation. The single category is far less likely to get no response at all, *and* is most likely to have requests granted in full. (But, interestingly, collective petitions are most likely to have a reason given for rejection.)
+
+```{r waffle-detailed-responses-to-cheshire-qs-petitions-by-petition-type, fig.alt='Waffle chart of positive vs negative response categories to petitions faceted by petition type.'}
+
+ches_petition_responses_fct %>%
+  count(petition_type_s, response) %>%
+    ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  facet_wrap(~petition_type_s) +
+  labs(title="Responses to Cheshire QS petitions by petition type") 
+```
+
+Same breakdown for the other counties.
+
+```{r waffle-detailed-responses-to-other-qs-petitions-by-petition-type, fig.alt='Waffle chart of positive vs negative response categories to other petitions faceted by petition type.'}
+
+qs_level1_petitions_responses_fct %>%
+  count(petition_type_s, response) %>%
+    ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  facet_wrap(~petition_type_s) +
+  labs(title="Responses to QS petitions excl Cheshire by petition type") 
+```
+
+
+### petition gender type
+
+(Collective petitions excluded.)
+
+A summary of gender of all petitioners (but not additional subscribers) per petition:
+
+- f = female only (128 petitions)
+- m = male only (343)
+- fm = mixed gender (26)
+
+Again there is very little variation in positive response rates. I might have expected slightly more variation in this category as I know there are gendered variations in petition topics; I'll need to explore this further.
+
+```{r}
+# how can na be < collective in petition type? f and m collective... on behalf. exclude them
+# ches_petition_responses_fct %>%
+#   filter(petition_type_s !="collective") %>%
+#   count(pet_gender)
+```
+
+
+```{r waffle-responses-to-cheshire-qs-petitions-by-petition-gender-type, fig.alt='Waffle chart of positive vs negative responses to petitions faceted by petition gender type (female, male, mixed); differences between genders are smaller than I might have expected.'}
+
+ches_petition_responses_fct %>%
+  filter(petition_type_s!="collective") %>%
+  add_count(petition_gender, name="n_gen") %>%
+  count(response_s, petition_gender, n_gen) %>%
+#mutate(p = n/n_gen)
+    ggplot(aes(fill=response_s, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) +
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_viridis_d(begin = 0.2, end=0.8, option = "inferno") +
+  facet_wrap(~petition_gender) +
+  labs(fill="response", title="Simplified responses (Cheshire only) by petition gender type", caption="1 square=1% of petitions")
+```
+
+And again, the more detailed breakdown of responses shows up more subtle variations. It appears that petitions involving female petitioners were less likely to have requests granted *in full* and more likely to have their cases referred to JPs for further investigation.
+
+```{r waffle-detailed-responses-to-cheshire-qs-petitions-by-petition-gender-type, fig.alt='Waffle chart of detailed response categories to Cheshire petitions faceted by petition gender.'}
+##alt text: chart type of type of data where reason for including chart
+ches_petition_responses_fct %>%
+  filter(petition_type_s !="collective") %>%
+  count(petition_gender, response) %>%
+    ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  facet_wrap(~petition_gender) +
+  labs(title="Responses to Cheshire petitions by petition gender type") 
+```
+
+Other counties for comparison.
+
+```{r waffle-detailed-responses-to-other-qs-petitions-by-petition-gender-type, fig.alt='Waffle chart of detailed response categories to other counties petitions faceted by petition gender.'}
+##alt text: chart type of type of data where reason for including chart
+qs_level1_petitions_responses_fct %>%
+  filter(petition_type_s !="collective", petition_gender %in% c("f", "fm", "m")) %>%
+  count(petition_gender, response) %>%
+    ggplot(aes(fill=response, values=n)) +
+  geom_waffle(colour="white", n_rows = 10, make_proportional = TRUE) + 
+  # can't remember how to fix ordering in waffle...
+  coord_equal() +
+  theme_minimal() +
+  theme_enhance_waffle() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  facet_wrap(~petition_gender) +
+  labs(title="Responses for other counties by petition gender type") 
+```
+
+[Updated] Breakdown by topic as well as gender (excluding mixed gender).
+
+For Cheshire:
+
+- Greater tendency for female petitions to be referred is clear across multiple topic categories. (The only topics with a higher % of male referrals are ones that have very very few female petitions.)
+- The situation with fully granted requests is a bit more mixed, but most of the lower female % is probably accounted for by the two large (and very distinct!) categories of litigation and poor relief.
+
+```{r proportional-bar-detailed-responses-to-cheshire-qs-petitions-by-petition-gender-type-topic, fig.alt='Proportional stacked bar chart of detailed response categories to Cheshire petitions broken down by topic and petition gender (excluding mixed gender).'}
+ches_petition_responses_fct %>%
+  filter(petition_gender %in% c("m" , "f")) %>%
+  count(topic, response, petition_gender) %>%
+  # inner_join(
+  #  ches_petition_responses_fct  %>%
+  # count(topic, response_s, name="nrs") %>%
+  # group_by(topic) %>%
+  # mutate(p = nrs/sum(nrs)) %>%
+  # ungroup() %>%
+  # filter(response_s=="positive"), by="topic"
+  # ) %>%
+  ggplot(aes(fct_rev(topic), n, fill=response)) +
+  geom_col(position = "fill") +
+  facet_wrap(~petition_gender) +
+  #scale_fill_tableau() +
+  #scale_fill_colorblind() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  #scale_fill_viridis_d(option="inferno") + viridis really doesn't work for this...
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses", title="Responses (Cheshire only) by topic and gender", caption="excluding mixed")
+# female petitioners were less likely to have requests granted *in full* and more likely to have their cases referred
+```
+
+
+```{r proportional-bar-detailed-responses-to-other-qs-petitions-by-petition-gender-type-topic, fig.alt='Proportional stacked bar chart of detailed response categories to petitions excl Cheshire, broken down by topic and petition gender (excluding mixed gender).'}
+qs_level1_petitions_responses_fct %>%
+  filter(petition_gender %in% c("m" , "f")) %>%
+  count(topic, response, petition_gender) %>%
+  ggplot(aes(fct_rev(topic), n, fill=response)) +
+  geom_col(position = "fill") +
+  facet_wrap(~petition_gender) +
+  #scale_fill_tableau() +
+  #scale_fill_colorblind() +
+  scale_fill_brewer(palette = "RdYlBu") +
+  #scale_fill_viridis_d(option="inferno") + viridis really doesn't work for this...
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  theme(legend.position = "left") +
+  #theme(axis.text.x =  element_text(angle=45, vjust=0.5, size=9)) +
+  labs(y="% of petitions", x=NULL, fill="responses", title="Responses (excl Cheshire) by topic and gender", caption="excluding mixed")
+
+```
+
