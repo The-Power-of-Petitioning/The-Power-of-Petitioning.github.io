@@ -1,0 +1,286 @@
+---
+title: "House of Lords Petitions Explorer"
+author: "Sharon Howard"
+categories: [HoL]
+execute: 
+  warning: false
+  message: false
+  echo: false 
+---
+
+
+An interactive table for exploring the Power of Petitioning [House of Lords petitions](https://www.british-history.ac.uk/petitions/house-of-lords) data. 
+
+
+```{r}
+source(here::here("_R/data.R"))
+
+source(here::here("_R/reactable.R"))
+
+#library(reactablefmtr) # mainly additional themes
+
+
+# sticky column styles
+# put these in reactable.R. with various notes. 
+# added to reactable.R: headerMakeSpace 
+# js function to replace _ in header names with space. maybe should do camelCase as well but that's harder and i don't often use it. 
+```
+
+
+```{r}
+bho_hl_urls <-
+tribble(~bho_path,
+  "1597", 	
+"1601", 	
+"1606", 	
+"1610", 	
+"1613", 	
+"1614", 	
+"1619", 	
+"1620", 	
+"1621", 	
+"1624", 	
+"1640", 	
+"1648", 	
+"1661", 	
+"1671", 	
+"1679", 	
+"1689", 	
+"1696") |>
+  mutate(year = parse_number(bho_path)) |>
+  mutate(bho_path= paste0("house-of-lords/", bho_path))
+
+
+data_reactable <-
+hol_sqlite |>  
+  select(petition_id, petitioner, year, date, themes, petition_type, petition_gender, description, reference) |>
+  mutate(reference = paste("PA", reference)) |>
+  mutate(themes = str_replace_all(themes, " *\\| *", ", ")) |>
+  mutate(petition_gender = case_when(
+    petition_gender=="f" ~ "female", 
+    petition_gender=="fm" ~ "mixed", 
+    petition_gender=="m" ~ "male", 
+    petition_gender=="u" ~ "unknown", 
+    .default = "n/a" # collective petitions
+  ))  |>
+  inner_join(bho_hl_urls, by="year") |>
+  arrange(year)
+
+```
+
+
+
+
+- [Notes](#notes) on using the Explorer
+
+
+```{r}
+#| column: screen-inset-shaded
+
+###  column: v wide: screen-inset-shaded / not quite so wide: page
+
+reactable(
+
+  data_reactable, 
+  
+  columns = list(
+    petition_id = colDef(show=FALSE), # often won't want to show this sort of id column
+    
+    # link to BHO page, not to specific entry
+    petitioner = colDef(#name="name", 
+                        minWidth = 220,
+                        sticky = "left",
+                        style = sticky_style,
+                        headerStyle = sticky_header_style,
+                        html = TRUE,
+                        # this needs an if... you have to get the url data for it.
+                        cell = function(value, index){
+                          url_data <- data_reactable$bho_path[index]
+                          if (!is.na(url_data)) { sprintf('<a href="https://www.british-history.ac.uk/petitions/%s" target="_blank">%s</a>', data_reactable$bho_path[index], value) } else { value }
+                          
+                        }
+        ), 
+    
+    year= colDef(name = "year",
+                 maxWidth = 120,
+                  filterMethod = filterNumPosRange,
+                  filterInput = filterTextPlaceholderInput("data-table", "1597/1696"),
+                  html=TRUE,
+                   # add more info about the column to the header.
+                   header = JS('function(column) {
+                     return column.name + `<div style="color: #737373; font-weight: normal;">(from/to)</div>`
+                   }'),
+                  cell = function(value) {
+                                if (substr(value, 1,4) == substr(value, 6, 9)) {substr(value, 1, 4)} else {value}
+                                }                  
+      ),
+    
+    # handle date as text string.
+    date = colDef(name = "date", minWidth = 140 ), 
+    
+    
+    themes = colDef(name="themes"
+              #filterInput = selectFilterInput("data-table"),
+              # exact text search not needed?
+              #filterMethod = filterTextExact
+    ),
+    
+    petition_type = colDef(name="petition type",
+               filterInput = selectFilterInput("data-table"),
+                # exact text search - i think you might need it here?
+               filterMethod = filterTextExact
+    ),
+    
+    # select dropdown + exact text search
+    petition_gender = colDef(maxWidth = 100 , 
+        filterInput = selectFilterInput("data-table"),
+        # exact text search to avoid the 'male' in 'female' problem
+        filterMethod = filterTextExact
+    ),
+    
+    
+    reference = colDef(name="reference", minWidth = 180),
+    
+    # columns to hide
+    # named_petrs=colDef(show = FALSE),
+    # subscribers = colDef(show = FALSE),
+    
+    bho_path = colDef(show = FALSE),
+    description = colDef(show = FALSE)
+
+),
+
+  # groups are esp useful for wider tables, but take a fair bit of work.
+  #   columnGroups = list(
+  #     colGroup()
+  # ),
+
+  elementId = "data-table", # change if more than one on the page!
+
+  filterable = TRUE,
+
+  defaultColDef = colDef(
+      header = headerMakeSpace, # replaces underscore with space. often all you need to make headers presentable! 
+      minWidth = 120,
+      sortNALast = TRUE,
+    # start with this commented out as it can slow down large/texty tables. but it's usually worth using.
+    ## can exclude specific column(s) by name in the if() eg '& name !="url_text"'
+      filterInput = function(values, name) {
+        if (is.character(values) ) {
+        dataListFilterInput("data-table")(values, name)
+      }
+    } # /filterInput
+   ), # /defaultcoldef
+
+
+  #defaultColGroup = NULL,
+
+  pagination = TRUE,
+  defaultPageSize = 10,
+  showPageSizeOptions = TRUE,
+  pageSizeOptions = c(10, 25, 50, 100),
+  paginationType = "numbers", # "numbers" for page number buttons, "jump" for a page jump (more compact up-down arrows, useful for tables with a lot of pages)
+  showPageInfo = TRUE,
+
+  
+# appearance options might vary a bit 
+  highlight = TRUE, # highlight on hover?
+  outlined = TRUE, # borders around the table? i quite like the borders actually.
+  bordered = TRUE, # borders around the table and every cell?
+  borderless = TRUE, #  Remove inner borders from table?
+  striped = TRUE, # zebra striping for table rows. how well does this go with borders?
+  compact = FALSE, # what diff does this make? I think just a bit less padding etc.
+
+  #groupBy = NULL, # colname or c(colnames). aggregation using aggregate arg in colDef()
+
+  #sortable = TRUE,
+  #resizable = FALSE,
+
+  #searchable = FALSE, # won't often want this
+  #searchMethod = NULL, # custom search method, JS()
+  
+  # defaultSortOrder = "asc", # "desc" for descending order
+  # defaultSorted = NULL, # colname / c(colnames). for different directions use list() list(Species = "asc", Petal.Length = "desc")
+
+  #minRows = 1,
+  #paginateSubRows = FALSE, #  When rows are grouped, paginate sub rows? 
+  
+  #wrap = TRUE, # text wrapping. If TRUE, long text wrapped to multiple lines. If FALSE, text truncated to fit on one line.
+    
+  fullWidth = TRUE,
+
+  #meta = NULL, #  Custom metadata to pass to JavaScript render functions or style functions. A named list of values that can also be JS() expressions or functions. 
+
+  defaultExpanded = FALSE, # whether to load with nested rows opened 
+  
+# details are likely to vary a LOT! 
+
+  # details = NULL, # Additional content to display when expanding a row. An R function that takes the row index and column name as arguments, or a JS() function that takes a row info object as an argument. Can also be a colDef() to customize the details expander column.
+
+#   # You can add details to individual columns! - i think all you need to do is put details inside a colDef rather than at this level.
+  details = function(index) {
+    det <- data_reactable |>
+      select(petition_id, description) |>
+      filter(petition_id == data_reactable$petition_id[index])
+      # works ok where inquest has no text, but det opens up with "No rows found"; maybe not ideal.
+      # maybe https://glin.github.io/reactable/articles/examples.html#conditional-row-details
+    tbl <- reactable(det,
+                     outlined = TRUE, #highlight = TRUE,
+                     #resizable = TRUE, # this does help but it's not immediately obvious that you can resize.
+                     #filterable = TRUE, # only filters within the open details field; might be useful if lots of rows.
+                     fullWidth = FALSE, # 
+                     #defaultPageSize = 30,
+                     # possible to use footer for link? not sure how the code would work.
+                     columns = list(
+                      description=colDef(minWidth=650, html = TRUE ), # can i use % in minWidth? no.
+                      petition_id = colDef(show=FALSE)
+                    ) # list
+                  ) # columns. why isn't a comma needed here???
+    htmltools::div(style = list(margin = "10px 60px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer")
+#   # end of details 
+
+) 
+```
+
+
+## Notes on the Explorer
+
+*Filtering:* 
+
+All columns are filterable.
+
+- Text filters match any part of a cell; just start typing to see a list of possible matches
+- The year filter matches ranges using / as separator
+  - eg "/1630" = up to 1630, "1630/" = 1630 and later, "1630/1630" = 1630 only, and "1630/1632" = 1630 to 1632
+  
+
+*Sorting:*
+
+By default, the table is sorted by year.
+
+- All columns are sortable by clicking on the header
+- Sort multiple columns using the Shift key 
+- Empty cells are sorted to the *end* of the table
+
+
+
+## Notes on the Data
+
+More information about the dataset can be found in the [dataset documentation](https://doi.org/10.5281/zenodo.7027692) and in the British History Online edition's [Introduction](https://www.british-history.ac.uk/series/english-petitions). 
+
+Many petitions are undated and the year has usually been derived from archival context; occasionally, the year might differ slightly from the date.
+
+
+
+
+```{r}
+# do some spot checks on these when you have links in the reactable...
+# qs_petitions |>
+#   left_join(bho_qs_xml_urls, by="petition_id")  |>
+#   filter(str_detect(date, "/")  ) |>
+#   select(petitioner, reference, date, page) 
+```
+

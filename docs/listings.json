@@ -4,7 +4,20 @@
     "items": [
       "/themes/topics.html",
       "/themes/petitioners.html",
-      "/themes/responses.html"
+      "/themes/responses.html",
+      "/interactive/petitions-mindseye-dashboard.html",
+      "/interactive/hol-petitions-explorer.html",
+      "/interactive/qs-petitions-explorer.html",
+      "/interactive/sp-petitions-explorer.html"
+    ]
+  },
+  {
+    "listing": "/interactive/index.html",
+    "items": [
+      "/interactive/petitions-mindseye-dashboard.html",
+      "/interactive/hol-petitions-explorer.html",
+      "/interactive/qs-petitions-explorer.html",
+      "/interactive/sp-petitions-explorer.html"
     ]
   },
   {

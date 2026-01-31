@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Visualising the power of early modern petitioning – Exploring The Power of Petitioning</title>
+<title>Interactives – Exploring The Power of Petitioning</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,26 +23,26 @@ ul.task-list li input[type="checkbox"] {
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<link href="./favicon.png" rel="icon" type="image/png">
-<script src="site_libs/quarto-listing/list.min.js"></script>
-<script src="site_libs/quarto-listing/quarto-listing.js"></script>
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2e1c76687fb8e56fe79e3ab19f855661.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../favicon.png" rel="icon" type="image/png">
+<script src="../site_libs/quarto-listing/list.min.js"></script>
+<script src="../site_libs/quarto-listing/quarto-listing.js"></script>
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-37eea08aefeeee20ff55810ff984fec1.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-2e1c76687fb8e56fe79e3ab19f855661.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -73,35 +73,7 @@ ul.task-list li input[type="checkbox"] {
 <script>
 
   window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-tpop-grid .list');
-    if (!listingTargetEl) {
-      // No listing discovered, do not attach.
-      return; 
-    }
-
-    const options = {
-      valueNames: ['listing-image','listing-title','listing-description',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
-      
-      searchColumns: ["listing-title","listing-author","listing-image","listing-description","listing-categories"],
-    };
-
-    window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-tpop-grid'] = new List('listing-tpop-grid', options);
-
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  });
-
-  window.addEventListener('hashchange',() => {
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  })
-  
-
-  window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-interactive-grid .list');
+    const listingTargetEl = window.document.querySelector('#listing-interactives-grid .list');
     if (!listingTargetEl) {
       // No listing discovered, do not attach.
       return; 
@@ -114,7 +86,7 @@ ul.task-list li input[type="checkbox"] {
     };
 
     window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-interactive-grid'] = new List('listing-interactive-grid', options);
+    window['quarto-listings']['listing-interactives-grid'] = new List('listing-interactives-grid', options);
 
     if (window['quarto-listing-loaded']) {
       window['quarto-listing-loaded']();
@@ -158,7 +130,7 @@ window.Quarto = {
 };
 </script>
 
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="../styles.css">
 </head>
 
 <body class="nav-fixed quarto-light">
@@ -168,7 +140,7 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">Exploring The Power of Petitioning</span>
     </a>
   </div>
@@ -179,15 +151,15 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./themes/index.html"> 
+    <a class="nav-link" href="../themes/index.html"> 
 <span class="menu-text">Themes</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./interactive/"> 
+    <a class="nav-link" href="../interactive/"> 
 <span class="menu-text">Interactives</span></a>
   </li>  
 </ul>
@@ -202,13 +174,13 @@ window.Quarto = {
 <!-- sidebar -->
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(7)</span></div><div class="category" data-category="YXV0aG9yaXRpZXM=">authorities <span class="quarto-category-count">(1)</span></div><div class="category" data-category="SG9M">HoL <span class="quarto-category-count">(1)</span></div><div class="category" data-category="cGV0aXRpb25lcnM=">petitioners <span class="quarto-category-count">(1)</span></div><div class="category" data-category="UVM=">QS <span class="quarto-category-count">(5)</span></div><div class="category" data-category="U1A=">SP <span class="quarto-category-count">(1)</span></div><div class="category" data-category="dG9waWNz">topics <span class="quarto-category-count">(1)</span></div></div></div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(4)</span></div><div class="category" data-category="SG9M">HoL <span class="quarto-category-count">(1)</span></div><div class="category" data-category="UVM=">QS <span class="quarto-category-count">(2)</span></div><div class="category" data-category="U1A=">SP <span class="quarto-category-count">(1)</span></div></div></div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Visualising the power of early modern petitioning</h1>
+<h1 class="title">Interactives</h1>
 </div>
 
 
@@ -225,142 +197,71 @@ window.Quarto = {
 </header>
 
 
-<p>This a website by <a href="http://sharonhoward.org">Sharon Howard</a> for exploring and visualising data created by and for the <a href="https://petitioning.history.ac.uk/">Power of Petitioning in the 17th Century</a> (TPOP). Most pieces are likely to be quite short, with commentary focusing on explanation of the visuals rather than discussion of findings.</p>
-<p>In the first instance, because I’m writing a case study on Cheshire petitioning, I’m focusing on <a href="https://www.british-history.ac.uk/petitions/cheshire">Cheshire petitions</a>, followed by other Quarter Sessions petitions, and particularly on exploring themes that I want to think about in the study.</p>
-<section id="explorations" class="level2">
-<h2 class="anchored" data-anchor-id="explorations">Explorations</h2>
-<div id="listing-tpop-grid" class="quarto-listing quarto-listing-container-grid">
-<div class="list grid quarto-listing-cols-3">
-<div class="g-col-1" data-index="0" data-categories="UVMlMkN0b3BpY3M=" data-listing-file-modified-sort="1769251504604" data-listing-reading-time-sort="16" data-listing-word-count-sort="3023">
-<a href="./themes/topics.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top"><img src="themes/topics_files/figure-html/topics_overview_bar-1.png" alt="Horizontal bar chart of petition topics in the Power of Petitioning Quarter Sessions collections, in descending order of frequency; litigation and poor relief are the most popular topics by some distance." style="height: 150px;"  class="thumbnail-image card-img"/></p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-QS petition topics
-</h5>
-<div class="card-text listing-description delink">
-<p>What were petitions about?</p>
-</div>
-</div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="1" data-categories="UVMlMkNwZXRpdGlvbmVycw==" data-listing-file-modified-sort="1769250997600" data-listing-reading-time-sort="23" data-listing-word-count-sort="4450">
-<a href="./themes/petitioners.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top"><img src="themes/petitioners_files/figure-html/qs_petrs_histogram_petrs_per_petition-1.png" alt="histogram showing numbers of named petitioners per petition in the Power of Petitioning Quarter Sessions collections. The largest group of petitioners (about 1200) has only one petitioner." style="height: 150px;"  class="thumbnail-image card-img"/></p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-QS petitioners and supporters
-</h5>
-<div class="card-text listing-description delink">
-<p>A closer look at the people behind petitions</p>
-</div>
-</div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="2" data-categories="UVMlMkNhdXRob3JpdGllcw==" data-listing-file-modified-sort="1769251002998" data-listing-reading-time-sort="25" data-listing-word-count-sort="4872">
-<a href="./themes/responses.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<p class="card-img-top"><img src="themes/responses_files/figure-html/waffle-responses-to-counties-qs-petitions-1.png" alt="Waffle chart of positive vs negative responses to QS petitions between 1573 and 1798, by county; positive response rates were higher for Cheshire than any other county." style="height: 150px;"  class="thumbnail-image card-img"/></p>
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-QS responses to petitions
-</h5>
-<div class="card-text listing-description delink">
-<p>Did petitioners get what they wanted?</p>
-</div>
-</div>
-</div></a>
-</div>
-</div>
-<div class="listing-no-matching d-none">No matching items</div>
-</div>
-<section id="interactives" class="level3">
-<h3 class="anchored" data-anchor-id="interactives">Interactives</h3>
-<div id="listing-interactive-grid" class="quarto-listing quarto-listing-container-grid">
-<div class="list grid quarto-listing-cols-3">
-<div class="g-col-1" data-index="0" data-categories="UVM=" data-listing-file-modified-sort="1769260431248" data-listing-reading-time-sort="1" data-listing-word-count-sort="23">
-<a href="./interactive/petitions-mindseye-dashboard.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-Cheshire Quarter Sessions petitions, 1573-1798
-</h5>
-<div class="card-text listing-description delink">
+<p>&nbsp;</p>
+<div id="listing-interactives-grid" class="quarto-listing quarto-listing-container-default">
+<div class="list quarto-listing-default">
+<div class="quarto-post image-right" data-index="0" data-categories="UVM=" data-listing-file-modified-sort="1769260431248" data-listing-reading-time-sort="1" data-listing-word-count-sort="23">
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="../interactive/petitions-mindseye-dashboard.html" class="no-external">Cheshire Quarter Sessions petitions, 1573-1798</a>
+</h3>
+<div class="delink listing-description"><a href="../interactive/petitions-mindseye-dashboard.html" class="no-external">
 A dashboard made in Observable Framework, exploring 613 TPOP petitions to Cheshire magistrates.
+</a></div>
+</div>
+<div class="metadata">
+<a href="../interactive/petitions-mindseye-dashboard.html" class="no-external">
+</a>
 </div>
 </div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="1" data-categories="SG9M" data-listing-file-modified-sort="1769854325423" data-listing-reading-time-sort="12" data-listing-word-count-sort="2323">
-<a href="./interactive/hol-petitions-explorer.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-House of Lords Petitions Explorer
-</h5>
-<div class="card-text listing-description delink">
+<div class="quarto-post image-right" data-index="1" data-categories="SG9M" data-listing-file-modified-sort="1769854325423" data-listing-reading-time-sort="12" data-listing-word-count-sort="2323">
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="../interactive/hol-petitions-explorer.html" class="no-external">House of Lords Petitions Explorer</a>
+</h3>
+<div class="delink listing-description"><a href="../interactive/hol-petitions-explorer.html" class="no-external">
 An interactive table for exploring the Power of Petitioning House of Lords petitions data.
+</a></div>
+</div>
+<div class="metadata">
+<a href="../interactive/hol-petitions-explorer.html" class="no-external">
+</a>
 </div>
 </div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="2" data-categories="UVM=" data-listing-file-modified-sort="1769854817404" data-listing-reading-time-sort="16" data-listing-word-count-sort="3088">
-<a href="./interactive/qs-petitions-explorer.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-Quarter Sessions Petitions Explorer
-</h5>
-<div class="card-text listing-description delink">
+<div class="quarto-post image-right" data-index="2" data-categories="UVM=" data-listing-file-modified-sort="1769854817404" data-listing-reading-time-sort="16" data-listing-word-count-sort="3088">
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="../interactive/qs-petitions-explorer.html" class="no-external">Quarter Sessions Petitions Explorer</a>
+</h3>
+<div class="delink listing-description"><a href="../interactive/qs-petitions-explorer.html" class="no-external">
 An interactive table for exploring the Power of Petitioning Quarter Sessions petitions data.
+</a></div>
+</div>
+<div class="metadata">
+<a href="../interactive/qs-petitions-explorer.html" class="no-external">
+</a>
 </div>
 </div>
-</div></a>
-</div>
-<div class="g-col-1" data-index="3" data-categories="U1A=" data-listing-file-modified-sort="1769854297129" data-listing-reading-time-sort="13" data-listing-word-count-sort="2443">
-<a href="./interactive/sp-petitions-explorer.html" class="quarto-grid-link">
-<div class="quarto-grid-item card h-100 card-left">
-<div class="card-body post-contents">
-<h5 class="no-anchor card-title listing-title">
-State Papers Petitions Explorer
-</h5>
-<div class="card-text listing-description delink">
+<div class="quarto-post image-right" data-index="3" data-categories="U1A=" data-listing-file-modified-sort="1769854297129" data-listing-reading-time-sort="13" data-listing-word-count-sort="2443">
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="../interactive/sp-petitions-explorer.html" class="no-external">State Papers Petitions Explorer</a>
+</h3>
+<div class="delink listing-description"><a href="../interactive/sp-petitions-explorer.html" class="no-external">
 An interactive table for exploring the Power of Petitioning State Papers petitions data.
+</a></div>
 </div>
+<div class="metadata">
+<a href="../interactive/sp-petitions-explorer.html" class="no-external">
+</a>
 </div>
-</div></a>
 </div>
 </div>
 <div class="listing-no-matching d-none">No matching items</div>
 </div>
-</section>
-</section>
-<section id="tpop-collections-on-british-history-online" class="level2">
-<h2 class="anchored" data-anchor-id="tpop-collections-on-british-history-online">TPOP collections on British History Online</h2>
-<ul>
-<li>Quarter Sessions:
-<ul>
-<li><a href="https://www.british-history.ac.uk/petitions/cheshire">Cheshire QS</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/derbyshire">Derbyshire</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/staffordshire">Staffordshire</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/westminster">Westminster</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/worcs-quarter-sessions">Worcestershire</a></li>
-</ul></li>
-<li><a href="https://www.british-history.ac.uk/petitions/house-of-lords">House of Lords</a></li>
-<li><a href="https://www.british-history.ac.uk/petitions/state-papers">State Papers</a></li>
-</ul>
-</section>
-<section id="tpop-public-data" class="level2">
-<h2 class="anchored" data-anchor-id="tpop-public-data">TPOP public data</h2>
-<ul>
-<li><a href="https://doi.org/10.5281/zenodo.7027692">Zenodo</a> - the data used here, with detailed documentation</li>
-</ul>
 
 
 
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

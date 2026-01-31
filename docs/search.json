@@ -70,11 +70,53 @@
     "text": "Signing petitions\nThere was no requirement to sign a petition and the majority of petitioners did not sign their petitions at all. Therefore, this is not an attempt to analyse signatures for evidence of literacy. But why did some petitioners sign their names if the majority didn’t bother? What, if anything, is the social/cultural/legal significance of a signature in a petition? It might not be the same as in witness examinations or other legal documents (for which signatures usually were required). So I’m curious as to whether there are any patterns of interest.\nI only have partial data for the untranscribed Cheshire petitions, so they’re excluded from this section. Overall, there’s some kind of signature for 24% of petitioners in the transcribed collections.\nIn transcriptions, signatures were also marked up for “type” of signature:\n\nmark\ninitial(s)\nautograph signature\nname written in the same hand as the main petition text\n\nThe last of these can be difficult to interpret. In most cases, it’s not because the petition was written by the petitioner; inspection of the Cheshire petition images indicates that the only instances of this were less typical petitionary letters. In some cases - certainly for subscribers - it looks possible that the petition is a copy rather than the original document. For petitioners it’s hard to be sure whether it’s a copy of an original autograph or a scribal decision to write out the name as a kind of pseudo-signature and so I’ll only include them in breakdowns by signature type.\nInitials are very rare (&lt;10, only 1 of which is for a petitioner) and so are counted with marks for this analysis. However, this in itself seems quite noteworthy, as I might expect them to be more common based on my recollection of other types of document in early modern court archives such as witness examinations. (Though I wouldn’t guarantee that my memory is reliable, and I’d need some data to verify this.)\nMoreover, as can be seen, even when combined marks and initials are not very common (only 2% of all petitioners signed this way, or 12% of signatures excluding scribal) - considerably less common, I suspect, than in witness examinations even though I might expect petitioners to be of fairly similar social status to witnesses.\n\n\n\n\n\n\n\n\n\nThe same for subscribers, and here (since there are no “[none]” to worry about) the low percentage of supporters signing by mark/initials is really striking, at about 4% (excluding scribal). This carries some clear implications about the social status of subscribers, and potentially these rates could be compared to data from studies of literacy.\n\n\n\n\n\n\n\n\n\n\ncounties\nNot for the first time, Derbyshire is anomalous and difficult to interpret because of its small numbers and gaps (and the high % of scribal “signatures” may say more about the county’s clerks and record-keeping practices than about its petitioners). Cheshire doesn’t offer the same excuse and the low % of petitioners signing is very striking. Worcestershire meanwhile has a considerably higher % of marks than the other counties.\nWestminster has by some distance the highest % of petitioner signing their names, and (notwithstanding my caveats) that probably really does reflect higher levels of literacy in London. But it seems less likely that literacy was substantially lower in Cheshire than in neighbouring Staffordshire and Worcestershire, so why are the % so much lower?\n\n\n\n\n\n\n\n\n\n\n\ngender\nThe lower % of women signing their petitions with autograph signatures might come as no surprise. But this also highlights that petitioners who could not write their names didn’t normally choose to sign with a mark instead.\n\n\n\n\n\n\n\n\n\n\n\npetition topics\nAssociation between the presence of signatures and specific petition topics is very clear: again, even if this isn’t directly about literacy, there are obvious correlations between higher signing % and topics where you might expect petitioners to be of higher/middling status, and the lowest % of signing are mostly related to poor relief. (There’s no obvious relationship between signing and the size of a topic.)\n\n\n\n\n\n\n\n\n\n\n\nchange over time\nHere, however, there is a strong relationship between the popularity of petitioning and the % of petitioners signing their petitions, as well as the obvious change over time. (51 Westminster petitions couldn’t be dated to within a decade. However, all were from c.1620-1640 and none were signed by the petitioners, so they’d make very little difference to this picture.)\nBetween the 1610s and 1670s and in the 1690s (the rise in the 1680s is intriguing), signing rates never rose above 10% of petitioners. Also, even though numbers are relatively small, the rate seems consistently much higher in the late 16th century, around 25-30%. From 1700 signing rates rise dramatically again; from the 1710s they never fall below 50% and peak in the 90s in mid century.\n(It’s also worth remembering that petitioning declined much more sharply in Cheshire after the 1680s than in the other counties.)\n\n\n\n\n\n\n\n\n\nTracking the % of petitions that have subscribers diverges from the chart for petitioners in some interesting ways. The % is consistently low in the first half of the 17th century, suddenly rises in the 1650s, falls again in the early 18th century before gradually increasing over the rest of that century. Could the sudden jump around 1650 suggest the influence of political revolution on collective activity in much more mundane areas of life?"
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "interactive/petitions-mindseye-dashboard.html",
+    "href": "interactive/petitions-mindseye-dashboard.html",
+    "title": "Cheshire Quarter Sessions petitions, 1573-1798",
     "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
+    "text": "Cheshire Quarter Sessions Petitions dashboard\n\n\nA dashboard made in Observable Framework, exploring 613 TPOP petitions to Cheshire magistrates."
+  },
+  {
+    "objectID": "interactive/qs-petitions-explorer.html",
+    "href": "interactive/qs-petitions-explorer.html",
+    "title": "Quarter Sessions Petitions Explorer",
+    "section": "",
+    "text": "An interactive table for exploring the Power of Petitioning Quarter Sessions petitions data."
+  },
+  {
+    "objectID": "interactive/qs-petitions-explorer.html#notes-on-the-explorer",
+    "href": "interactive/qs-petitions-explorer.html#notes-on-the-explorer",
+    "title": "Quarter Sessions Petitions Explorer",
+    "section": "Notes on the Explorer",
+    "text": "Notes on the Explorer\nFiltering:\nAll columns are filterable.\n\nText filters match any part of a cell; just start typing to see a list of possible matches\nThe year filter matches ranges using / as separator\n\neg “/1630” = up to 1630, “1630/” = 1630 and later, “1630/1630” = 1630 only, and “1630/1632” = 1630 to 1632\nsome petitions have year ranges rather than exact years. The range filter is inclusive: eg for petitions with the year “1620-1640”, it will match any of “1615/1625”, “1625/1635” or “1635/1645”\n\n\nSorting:\nBy default, the table is sorted first by county and then by year.\n\nAll columns are sortable by clicking on the header\nSort multiple columns using the Shift key\nEmpty cells are sorted to the end of the table"
+  },
+  {
+    "objectID": "interactive/qs-petitions-explorer.html#notes-on-the-data",
+    "href": "interactive/qs-petitions-explorer.html#notes-on-the-data",
+    "title": "Quarter Sessions Petitions Explorer",
+    "section": "Notes on the Data",
+    "text": "Notes on the Data\nMore information about the dataset can be found in the dataset documentation and in the Introduction for each county on British History Online. See also the explorations in Themes.\nMany petitions are undated and the year has usually been derived from archival context (the date of a court file). As a result, very occasionally, the year might differ slightly from the date."
+  },
+  {
+    "objectID": "interactive/hol-petitions-explorer.html",
+    "href": "interactive/hol-petitions-explorer.html",
+    "title": "House of Lords Petitions Explorer",
+    "section": "",
+    "text": "An interactive table for exploring the Power of Petitioning House of Lords petitions data."
+  },
+  {
+    "objectID": "interactive/hol-petitions-explorer.html#notes-on-the-explorer",
+    "href": "interactive/hol-petitions-explorer.html#notes-on-the-explorer",
+    "title": "House of Lords Petitions Explorer",
+    "section": "Notes on the Explorer",
+    "text": "Notes on the Explorer\nFiltering:\nAll columns are filterable.\n\nText filters match any part of a cell; just start typing to see a list of possible matches\nThe year filter matches ranges using / as separator\n\neg “/1630” = up to 1630, “1630/” = 1630 and later, “1630/1630” = 1630 only, and “1630/1632” = 1630 to 1632\n\n\nSorting:\nBy default, the table is sorted by year.\n\nAll columns are sortable by clicking on the header\nSort multiple columns using the Shift key\nEmpty cells are sorted to the end of the table"
+  },
+  {
+    "objectID": "interactive/hol-petitions-explorer.html#notes-on-the-data",
+    "href": "interactive/hol-petitions-explorer.html#notes-on-the-data",
+    "title": "House of Lords Petitions Explorer",
+    "section": "Notes on the Data",
+    "text": "Notes on the Data\nMore information about the dataset can be found in the dataset documentation and in the British History Online edition’s Introduction.\nMany petitions are undated and the year has usually been derived from archival context; occasionally, the year might differ slightly from the date."
   },
   {
     "objectID": "index.html",
@@ -84,11 +126,11 @@
     "text": "This a website by Sharon Howard for exploring and visualising data created by and for the Power of Petitioning in the 17th Century (TPOP). Most pieces are likely to be quite short, with commentary focusing on explanation of the visuals rather than discussion of findings.\nIn the first instance, because I’m writing a case study on Cheshire petitioning, I’m focusing on Cheshire petitions, followed by other Quarter Sessions petitions, and particularly on exploring themes that I want to think about in the study."
   },
   {
-    "objectID": "index.html#themes",
-    "href": "index.html#themes",
+    "objectID": "index.html#explorations",
+    "href": "index.html#explorations",
     "title": "Visualising the power of early modern petitioning",
-    "section": "Themes",
-    "text": "Themes\n\n\n\n\n\n\n\n\nQS petition topics\n\n\nWhat were petitions about?\n\n\n\n\n\n\n\n\n\n\nQS petitioners and supporters\n\n\nA closer look at the people behind petitions\n\n\n\n\n\n\n\n\n\n\nQS responses to petitions\n\n\nDid petitioners get what they wanted?\n\n\n\n\n\nNo matching items\n\n\nfuture plans\n\ncontexts\ntexts"
+    "section": "Explorations",
+    "text": "Explorations\n\n\n\n\n\n\n\n\nQS petition topics\n\n\nWhat were petitions about?\n\n\n\n\n\n\n\n\n\n\nQS petitioners and supporters\n\n\nA closer look at the people behind petitions\n\n\n\n\n\n\n\n\n\n\nQS responses to petitions\n\n\nDid petitioners get what they wanted?\n\n\n\n\n\nNo matching items\n\n\nInteractives\n\n\n\n\n\n\n\nCheshire Quarter Sessions petitions, 1573-1798\n\n\n\n\n\n\n\n\n\n\n\n\nHouse of Lords Petitions Explorer\n\n\n\n\n\n\n\n\n\n\n\n\nQuarter Sessions Petitions Explorer\n\n\n\n\n\n\n\n\n\n\n\n\nState Papers Petitions Explorer\n\n\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "index.html#tpop-collections-on-british-history-online",
@@ -103,6 +145,41 @@
     "title": "Visualising the power of early modern petitioning",
     "section": "TPOP public data",
     "text": "TPOP public data\n\nZenodo - the data used here, with detailed documentation"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "interactive/index.html",
+    "href": "interactive/index.html",
+    "title": "Interactives",
+    "section": "",
+    "text": "Cheshire Quarter Sessions petitions, 1573-1798\n\n\n\n\n\n\n\n\n\n\n\n\n\nHouse of Lords Petitions Explorer\n\n\n\n\n\n\n\n\n\n\n\n\n\nQuarter Sessions Petitions Explorer\n\n\n\n\n\n\n\n\n\n\n\n\n\nState Papers Petitions Explorer\n\n\n\n\n\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "interactive/sp-petitions-explorer.html",
+    "href": "interactive/sp-petitions-explorer.html",
+    "title": "State Papers Petitions Explorer",
+    "section": "",
+    "text": "An interactive table for exploring the Power of Petitioning State Papers petitions data."
+  },
+  {
+    "objectID": "interactive/sp-petitions-explorer.html#notes-on-the-explorer",
+    "href": "interactive/sp-petitions-explorer.html#notes-on-the-explorer",
+    "title": "State Papers Petitions Explorer",
+    "section": "Notes on the Explorer",
+    "text": "Notes on the Explorer\nFiltering:\nAll columns are filterable.\n\nText filters match any part of a cell; just start typing to see a list of possible matches\nThe year filter matches ranges using / as separator\n\neg “/1630” = up to 1630, “1630/” = 1630 and later, “1630/1630” = 1630 only, and “1630/1632” = 1630 to 1632\n\n\nSorting:\nBy default, the table is sorted by year.\n\nAll columns are sortable by clicking on the header\nSort multiple columns using the Shift key\nEmpty cells are sorted to the end of the table"
+  },
+  {
+    "objectID": "interactive/sp-petitions-explorer.html#notes-on-the-data",
+    "href": "interactive/sp-petitions-explorer.html#notes-on-the-data",
+    "title": "State Papers Petitions Explorer",
+    "section": "Notes on the Data",
+    "text": "Notes on the Data\nMore information about the dataset can be found in the dataset documentation and in the British History Online edition Introduction.\nMany petitions are undated and the year has usually been derived from archival context; the year might differ slightly from the date."
   },
   {
     "objectID": "themes/topics.html",

@@ -12,6 +12,8 @@ website:
         text: Home
       - href: themes/index.qmd
         text: Themes
+      - href: interactive/
+        text: Interactives
 
 format:
   html:

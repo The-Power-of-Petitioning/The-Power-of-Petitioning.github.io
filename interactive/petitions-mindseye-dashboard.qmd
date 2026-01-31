@@ -1,0 +1,12 @@
+---
+title: "Cheshire Quarter Sessions petitions, 1573-1798"
+author: "Sharon Howard"
+categories: [QS]
+---
+
+<div class="d-grid gap-2">
+<button class="btn speciallink">[Cheshire Quarter Sessions Petitions dashboard](https://sharonhoward.github.io/mindseye_of/cheshire-petitions.html)</button>
+</div>
+
+A dashboard made in Observable Framework, exploring 613 TPOP petitions to Cheshire magistrates.  
+

@@ -6,17 +6,18 @@ library(RSQLite)
 # library(readxl) 
 # library(readODS)
 
+# knitr tables etc
+# if used, load before tidyverse
+# library(knitr)
+# library(kableExtra)
 
 library(janitor)
 library(scales)
 library(glue)
 
 library(reactable)
+library(htmltools)
 
-# knitr tables etc
-# if used, load before tidyverse
-# library(knitr)
-# library(kableExtra)
 
 # tidyverse
 library(tidytext)
@@ -69,6 +70,7 @@ qs_petitions_combined <-
   )) |>
   # ok i think you do need to fix spaces in petition_type ????? check if this is still an issue!
   mutate(petition_type = str_trim(str_replace_all(petition_type, "  +", " "))) |>
+  
   mutate(petition_id = paste(county, petition_id, sep="_")) |> # don't thikn you actually need this for it to be unique...? unless you add herts.
   #select(reference, doc_no, ll_img, county, petition_id, decade, topic, subtopic, petition_type, petition_type_s, gender, named_petrs, subscribers, response_cat, year, year_strict, year_parse, petitioner, abstract, transcribed) |>
   rowid_to_column("all_id")
@@ -76,5 +78,15 @@ qs_petitions_combined <-
 
 qs_petitioners_sqlite <-
   dbGetQuery(db_conn, "select * from QS_petitioners")
+
+
+
+hol_sqlite <-
+  dbGetQuery(db_conn, "select * from HOL_petitions")
+
+
+sp_sqlite <-
+  dbGetQuery(db_conn, "select * from SP_petitions")
+
 
 dbDisconnect(db_conn)

@@ -1,0 +1,374 @@
+---
+title: "Quarter Sessions Petitions Explorer"
+author: "Sharon Howard"
+categories: [QS]
+execute: 
+  warning: false
+  message: false
+  echo: false 
+---
+
+
+An interactive table for exploring the Power of Petitioning [Quarter Sessions petitions](https://www.british-history.ac.uk/series/english-petitions) data. 
+
+
+```{r}
+source(here::here("_R/data.R"))
+
+source(here::here("_R/reactable.R"))
+
+#library(reactablefmtr) # mainly additional themes
+
+
+# sticky column style
+# put these in reactable.R. with various notes. 
+
+# Background style to visually distinguish sticky columns.
+# sticky_style 
+# sticky_header_style 
+# group_left_style 
+# added to reactable.R: headerMakeSpace 
+# js function to replace _ in header names with space. maybe should do camelCase as well but that's harder and i don't often use it. 
+
+```
+
+
+```{r}
+## hand-made csv from BHO ToCs, but xml metadata is better. moved it to _stuff.
+# qs_bho_csv <-   read_csv(here::here("_data/qs_bho_pages.csv"))
+# for urls counties need to be lower-cased. worcestershire = "worcs-quarter-sessions"
+
+# processing done in petitions, put a copy in here
+bho_qs_xml_metadata_csv <-
+  read_csv(here::here("_data/bho_qs_xml_metadata_20260128.csv"))
+
+bho_qs_xml_metadata <-
+  bho_qs_xml_metadata_csv |>
+  separate(title, into=c("c", "d"), sep = ": *", remove = F)
+
+bho_qs_xml_urls <-
+bho_qs_xml_metadata |>
+  # minor tweaks for urls
+  mutate(county2 = str_to_lower(str_replace(county, "Worcestershire", "worcs-quarter-sessions"))) |>
+  mutate(page = case_when(
+    d=="18th Century" ~ "18c",
+    d=="[1620-1640]" ~ "1620-1640",
+    .default = d
+  )) |>
+  mutate(bho_path = glue("{county2}/{page}")) |>
+  select(petition_id, bho_path, page)
+```
+
+
+```{r}
+# don't use data.R processing for this.
+qs_petitions <-
+qs_level1_sqlite |>
+  mutate(year_std = case_when(
+    year=="1620-1621" ~ 1620,
+    year=="1620-1628" ~ 1625,
+    year=="1634-1639" ~ 1635,
+    year=="1636-1640" ~ 1638,
+    year=="1639-1640" ~ 1640,
+    year %in% c("1649-1659", "1650-1659", "n.d. [1650s]") ~ 1655,
+    year=="1680-1689" ~ 1685,
+    TRUE ~ parse_number(str_replace(year, "n.d. \\[", ""), na="[1620-1640]")
+  ))  |>
+  #mutate(decade = year_std - (year_std %% 10) ) |>
+  mutate(petition_gender = case_when(
+    petition_gender=="f" ~ "female", 
+    petition_gender=="fm" ~ "mixed", 
+    petition_gender=="m" ~ "male", 
+    petition_gender=="u" & petitioner=="Richard Roberts" ~ "male", # idk why this is u!
+    petition_gender=="u" ~ "unknown", # only a handful of these but they aren't collective
+    .default = "n/a" # collective petitions
+    ))  |> 
+  mutate(petition_type_s = case_when(
+    petition_type=="single" & named_petrs==1 ~ "single",
+    str_detect(petition_type, "collective") ~ "collective",
+    str_detect(petition_type, "multiple") ~ "group"
+  )) |>
+  # ok i think you do need to fix spaces in petition_type ????? idk if this is still an issue but hey
+  mutate(petition_type = str_trim(str_replace_all(petition_type, "  +", " "))) 
+
+
+
+
+data_reactable <-
+qs_petitions |>
+  # why is non-BHO cheshire NA repository?
+    mutate(short_repo = case_when(
+    str_detect(repository, "Cheshire") | county=="Cheshire" ~ "CALS",
+    str_detect(repository, "Derbyshire") ~ "DRO",
+    str_detect(repository, "London") ~ "LMA",
+    str_detect(repository, "Stafford") ~ "SRO",
+    str_detect(repository, "Worcester") ~ "WA"
+  )) |> 
+  mutate(reference = glue("{short_repo} {reference}")) |>
+  mutate(response_cat = str_replace_all(response_cat, "_", " ")) |>
+  ## make a year range for filter
+  mutate(year_range = str_remove_all(year, "\\[|\\]|\\?|n.d. *")) |>
+  mutate(year_range = case_when(
+    str_detect(year_range, "^1...-1...$") ~ year_range,
+    year_range=="1650s" ~ "1650-1659", 
+    str_length(year_range)==4 ~ paste(year_range, year_range, sep="-")
+  )) |>
+  left_join(bho_qs_xml_urls, by="petition_id") |>
+  select(petition_id, petitioner, year_range, date, county, topic, subtopic, petition_type, petition_gender, response_cat, abstract, reference, bho_transcribed, bho_path) |>
+  arrange(county, year_range)
+```
+
+
+
+```{r}
+## it's historical data, you have fuzzy dates!
+## as long as you can convert fuzzy dates to a yyyy-yyyy format, you can make a filter for them. 
+## there are limits to that: can't easily handle "c." or "?" and suchlike.
+
+# there are NA years ?? ah, they're ranges, all Westminster.
+# min(na.omit(data_reactable$year)) # 1573
+# max(na.omit(data_reactable$year)) # 1799
+
+#data_reactable |> filter(is.na(year)) # 44
+
+#data_reactable |> select(year2) |> filter(str_detect(year2, "\\D"))
+
+# a problem with the filter statement.
+# ie: if you have a date "1620-1640" and a filter input "1630/1635" the filter will be *exclusive* of that date when it ought to be *inclusive*. how would you make it inclusive? 
+# the answer is so easy it's ridiculous... idk whether to TIL it or it'd be just embarrassing.
+# but i still can't quite get my head round how it works!
+
+# df |> filter(from <= max_value & to >= min_value)
+
+
+# YIKES a petition missing from bho: (!) is it in the transcriptions txt?
+# Worcestershire	1619	January 1619/20	1619	1610	Richarde Turner	Ref.110 BA1/1/31/3
+# as well as cheshire non-transcribed, of course.
+
+```
+
+
+
+
+- [Notes](#notes) on using the Explorer
+
+
+```{r}
+#| column: screen-inset-shaded
+
+###  column: v wide: screen-inset-shaded / not quite so wide: page
+
+reactable(
+
+  data_reactable, 
+  
+  columns = list(
+    petition_id = colDef(show=FALSE), # often won't want to show this sort of id column
+    
+    # might be able to make link to BHO page htough not to specific entry
+    petitioner = colDef(#name="name", 
+                        minWidth = 240,
+                        sticky = "left",
+                        style = sticky_style,
+                        headerStyle = sticky_header_style,
+                        html = TRUE,
+                        # this needs an if... you have to get the url data for it.
+                        cell = function(value, index){
+                          url_data <- data_reactable$bho_path[index]
+                          if (!is.na(url_data)) { sprintf('<a href="https://www.british-history.ac.uk/petitions/%s" target="_blank">%s</a>', data_reactable$bho_path[index], value) } else { value }
+                          
+                        }
+        ), 
+    
+    year_range = colDef(name = "year",
+                        maxWidth = 120,
+                  filterMethod = filterYearFuzzyRange,
+                  filterInput = filterTextPlaceholderInput("data-table", "1573/1800"),
+                  html=TRUE,
+                   # add more info about the column to the header.
+                   header = JS('function(column) {
+                     return column.name + `<div style="color: #737373; font-weight: normal;">(from/to)</div>`
+                   }'),
+                  cell = function(value) {
+                                if (substr(value, 1,4) == substr(value, 6, 9)) {substr(value, 1, 4)} else {value}
+                                }                  
+      ),
+    
+    # handle date as text string.
+    date = colDef(name = "date", minWidth = 140 ), 
+    
+    county = colDef(
+                  minWidth = 150,
+                 filterInput = selectFilterInput("data-table"),
+                 # exact text search not needed here?
+                 #filterMethod = filterTextExact
+    ),
+    
+    topic = colDef(
+              filterInput = selectFilterInput("data-table"),
+              # exact text search not needed?
+              #filterMethod = filterTextExact
+    ),
+    
+    subtopic = colDef(minWidth = 150),
+    
+    petition_type = colDef(name="petition type",
+               filterInput = selectFilterInput("data-table"),
+                # exact text search - i think you might need it here?
+               filterMethod = filterTextExact
+    ),
+    
+    # select dropdown + exact text search
+    petition_gender = colDef(maxWidth = 100 , 
+        filterInput = selectFilterInput("data-table"),
+        # exact text search to avoid the 'male' in 'female' problem
+        filterMethod = filterTextExact
+    ),
+    
+    response_cat = colDef(name="response",
+            filterInput = selectFilterInput("data-table"),
+            # exact text search helpful here?
+            filterMethod = filterTextExact                      
+    ),
+    
+    reference = colDef(name="reference", minWidth = 180),
+    
+    # columns to hide
+    # named_petrs=colDef(show = FALSE),
+    # subscribers = colDef(show = FALSE),
+    
+    bho_transcribed = colDef(show = FALSE),
+    abstract = colDef(show = FALSE),
+    bho_path = colDef(show = FALSE)
+
+),
+
+  # groups are esp useful for wider tables, but take a fair bit of work.
+  #   columnGroups = list(
+  #     colGroup()
+  # ),
+
+  elementId = "data-table", # change if more than one on the page!
+
+  filterable = TRUE,
+
+  defaultColDef = colDef(
+      header = headerMakeSpace, # replaces underscore with space. often all you need to make headers presentable! 
+      minWidth = 120,
+      sortNALast = TRUE,
+    # start with this commented out as it can slow down large/texty tables. but it's usually worth using.
+    ## can exclude specific column(s) by name in the if() eg '& name !="url_text"'
+      filterInput = function(values, name) {
+        if (is.character(values) ) {
+        dataListFilterInput("data-table")(values, name)
+      }
+    } # /filterInput
+   ), # /defaultcoldef
+
+
+  #defaultColGroup = NULL,
+
+  pagination = TRUE,
+  defaultPageSize = 10,
+  showPageSizeOptions = TRUE,
+  pageSizeOptions = c(10, 25, 50, 100),
+  paginationType = "numbers", # "numbers" for page number buttons, "jump" for a page jump (more compact up-down arrows, useful for tables with a lot of pages)
+  showPageInfo = TRUE,
+
+  
+# appearance options might vary a bit 
+  highlight = TRUE, # highlight on hover?
+  outlined = TRUE, # borders around the table? i quite like the borders actually.
+  bordered = TRUE, # borders around the table and every cell?
+  borderless = TRUE, #  Remove inner borders from table?
+  striped = TRUE, # zebra striping for table rows. how well does this go with borders?
+  compact = FALSE, # what diff does this make? I think just a bit less padding etc.
+
+  #groupBy = NULL, # colname or c(colnames). aggregation using aggregate arg in colDef()
+
+  #sortable = TRUE,
+  #resizable = FALSE,
+
+  #searchable = FALSE, # won't often want this
+  #searchMethod = NULL, # custom search method, JS()
+  
+  # defaultSortOrder = "asc", # "desc" for descending order
+  # defaultSorted = NULL, # colname / c(colnames). for different directions use list() list(Species = "asc", Petal.Length = "desc")
+
+  #minRows = 1,
+  #paginateSubRows = FALSE, #  When rows are grouped, paginate sub rows? 
+  
+  #wrap = TRUE, # text wrapping. If TRUE, long text wrapped to multiple lines. If FALSE, text truncated to fit on one line.
+    
+  fullWidth = TRUE,
+
+  #meta = NULL, #  Custom metadata to pass to JavaScript render functions or style functions. A named list of values that can also be JS() expressions or functions. 
+
+  defaultExpanded = FALSE, # whether to load with nested rows opened 
+  
+# details are likely to vary a LOT! 
+
+  # details = NULL, # Additional content to display when expanding a row. An R function that takes the row index and column name as arguments, or a JS() function that takes a row info object as an argument. Can also be a colDef() to customize the details expander column.
+
+#   # You can add details to individual columns! - i think all you need to do is put details inside a colDef rather than at this level.
+  details = function(index) {
+    det <- data_reactable |>
+      select(petition_id, abstract) |>
+      filter(petition_id == data_reactable$petition_id[index])
+      # works ok where inquest has no text, but det opens up with "No rows found"; maybe not ideal.
+      # maybe https://glin.github.io/reactable/articles/examples.html#conditional-row-details
+    tbl <- reactable(det,
+                     outlined = TRUE, #highlight = TRUE,
+                     #resizable = TRUE, # this does help but it's not immediately obvious that you can resize.
+                     #filterable = TRUE, # only filters within the open details field; might be useful if lots of rows.
+                     fullWidth = FALSE, # 
+                     #defaultPageSize = 30,
+                     # possible to use footer for link? not sure how the code would work.
+                     columns = list(
+                      abstract=colDef(minWidth=650, html = TRUE ), # can i use % in minWidth? no.
+                      petition_id = colDef(show=FALSE)
+                    ) # list
+                  ) # columns. why isn't a comma needed here???
+    htmltools::div(style = list(margin = "10px 60px"), tbl)
+  },
+  onClick = "expand",
+  rowStyle = list(cursor = "pointer")
+#   # end of details 
+
+) 
+
+# hmm pagination disappearing when you put sthg in years... hope that's not a bad sign
+```
+
+
+## Notes on the Explorer
+
+*Filtering:* 
+
+All columns are filterable.
+
+- Text filters match any part of a cell; just start typing to see a list of possible matches
+- The year filter matches ranges using / as separator
+  - eg "/1630" = up to 1630, "1630/" = 1630 and later, "1630/1630" = 1630 only, and "1630/1632" = 1630 to 1632
+  - some petitions have year ranges rather than exact years. The range filter is *inclusive*: eg for petitions with the year "1620-1640", it will match any of "1615/1625", "1625/1635" or "1635/1645"
+  
+
+*Sorting:*
+
+By default, the table is sorted first by county and then by year.
+
+- All columns are sortable by clicking on the header
+- Sort multiple columns using the Shift key 
+- Empty cells are sorted to the *end* of the table
+
+
+
+## Notes on the Data
+
+More information about the dataset can be found in the [dataset documentation](https://doi.org/10.5281/zenodo.7027692) and in the *Introduction* for each county on [British History Online](https://www.british-history.ac.uk/series/english-petitions). See also the explorations in [Themes](../themes/).
+
+Many petitions are undated and the year has usually been derived from archival context (the date of a court file). As a result, very occasionally, the year might differ slightly from the date.
+
+
+
+

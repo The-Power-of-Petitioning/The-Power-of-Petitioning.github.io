@@ -1,12 +1,12 @@
 ---
-title: "Themes"
+title: "Interactives"
 listing:
-  - id: themes-grid
+  - id: interactives-grid
     contents: 
     - "*.qmd"
     #max-items: 10
     type: default
-    fields: [title, description, image]
+    fields: [title, description]
     categories: true
     sort-ui: false
     filter-ui: false
@@ -16,6 +16,6 @@ toc: false
 &nbsp;
 
 
-::: {#themes-grid}
+::: {#interactives-grid}
 :::
 

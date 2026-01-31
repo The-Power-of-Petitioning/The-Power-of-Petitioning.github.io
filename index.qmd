@@ -10,6 +10,15 @@ listing:
     categories: true
     sort-ui: false
     filter-ui: false
+  - id: interactive-grid
+    contents: 
+    - "interactive/!(index).qmd"
+    type: grid
+    sort: "title"
+    fields: [title, description]
+    categories: true
+    sort-ui: false
+    filter-ui: false
 toc: false
 ---
 
@@ -20,7 +29,7 @@ Most pieces are likely to be quite short, with commentary focusing on explanatio
 In the first instance, because I'm writing a case study on Cheshire petitioning, I'm focusing on [Cheshire petitions](https://www.british-history.ac.uk/petitions/cheshire), followed by other Quarter Sessions petitions, and particularly on exploring themes that I want to think about in the study.
 
 
-## Themes
+## Explorations
 
 
 ::: {#tpop-grid}
@@ -28,10 +37,10 @@ In the first instance, because I'm writing a case study on Cheshire petitioning,
 
 
 
-### future plans
+### Interactives
 
-- contexts
-- texts
+::: {#interactive-grid}
+:::
 
 
 ## TPOP collections on British History Online
